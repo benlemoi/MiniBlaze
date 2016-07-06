@@ -40,17 +40,46 @@ operandB_unsigned <= unsigned(operandB_i);
 
    process(param_i, carry_i, operandA_i, operandB_i)
    
-   variable result : signed(DATA_WIDTH downto 0);
+   variable result      : signed(DATA_WIDTH downto 0) := (others => '0');
+   variable result_add  : signed(DATA_WIDTH downto 0) := (others => '0');
+   variable carry_in    : std_logic                   := '0';
+   variable carry_out   : std_logic                   := '0';
    
    begin
    
+      -- Chose carry in
+      case param_i.ctrl_op.whichCarry is
+         when CARRY_IN =>
+            carry_in := carry_i;
+         when CARRY_ONE =>
+            carry_in := '1';
+         when CARRY_ZERO =>
+            carry_in := '0';
+         when CARRY_ARITH =>
+            carry_in := operandA_i(operandA_i'left);
+      end case;
+      
+      result_add := signed(add(operandA_i, operandB_i, carry_in));
+   
       case param_i.operation is
-         
          when OP_PT =>
-            result   <= resize(operandA_signed, DATA_WIDTH + 1);
-         
+            result   := resize(operandA_signed, DATA_WIDTH + 1);
          when OP_ADD =>
-            result   <= 
+            result   := resultat_add;
+         when OP_AND =>
+            result   := operandA_signed and operandB_signed;
+         when OP_OR =>
+            result   := operandA_signed or operandB_signed;
+         when OP_SHIFT => 
+            result   := operandA_signed(0) & carry_in & operandA_signed(operandA_signed'left downto 1);
+      
+      end case;
+      
+      carry_out <= result(DATA_WIDTH);
+      
+      
+            
+         
             
    
    end process;
