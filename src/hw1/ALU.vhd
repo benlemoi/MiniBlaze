@@ -1,55 +1,90 @@
+-- **********************************************************************************
+--   Project          : MiniBlaze
+--   Author           : Benjamin Lemoine
+--   Module           : ALU
+--   Date             : 07/07/2016
+--
+--   Description      : Arithmetic Logic Unit
+--
+--   --------------------------------------------------------------------------------
+--   Modifications
+--   --------------------------------------------------------------------------------
+--   Date             : Ver. : Author           : Modification comments
+--   --------------------------------------------------------------------------------
+--                    :      :                  :
+--   07/07/2016       : 1.0  : B.Lemoine        : First draft
+--                    :      :                  :
+-- **********************************************************************************
+--   MIT License
+--   
+--   Copyright (c) 07/07/2016, Benjamin Lemoine
+--   
+--   Permission is hereby granted, free of charge, to any person obtaining a copy
+--   of this software and associated documentation files (the "Software"), to deal
+--   in the Software without restriction, including without limitation the rights
+--   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+--   copies of the Software, and to permit persons to whom the Software is
+--   furnished to do so, subject to the following conditions:
+--   
+--   The above copyright notice and this permission notice shall be included in all
+--   copies or substantial portions of the Software.
+--   
+--   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+--   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+--   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+--   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+--   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+--   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+--   SOFTWARE.
+-- **********************************************************************************
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-use work.ALU_pkg;
+use work.ALU_pkg.all;
 
-
-entity ALU
+entity ALU is
    generic(
       DATA_WIDTH  : natural := 32
    );
    port(
-      param_i     : in  param_alu;
+      param_i     : in  t_param_alu;
       carry_i     : in  std_logic;
       operandA_i  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
       operandB_i  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
       operandD_o  : out std_logic_vector(DATA_WIDTH - 1 downto 0);
-      status_o    : out status_alu
+      status_o    : out t_status_alu_out
    );
 end ALU;
 
 architecture rtl of ALU is
 
-signal operandA_signed     : signed(DATA_WIDTH - 1 downto 0);
-signal operandB_signed     : signed(DATA_WIDTH - 1 downto 0);
-
-signal operandA_unsigned   : unsigned(DATA_WIDTH - 1 downto 0);
-signal operandB_unsigned   : unsigned(DATA_WIDTH - 1 downto 0);
-
 begin
 
-operandA_signed   <= signed(operandA_i);
-operandB_signed   <= signed(operandB_i);
-
-operandA_unsigned <= unsigned(operandA_i);
-operandB_unsigned <= unsigned(operandB_i);
-
-
-
-   process(param_i, carry_i, operandA_i, operandB_i)
+   p_alu : process(param_i, carry_i, operandA_i, operandB_i)
    
-   variable result      : signed(DATA_WIDTH downto 0) := (others => '0');
-   variable result_add  : signed(DATA_WIDTH downto 0) := (others => '0');
-   variable carry_in    : std_logic                   := '0';
-   variable carry_out   : std_logic                   := '0';
+   variable result            : signed(DATA_WIDTH downto 0)                := (others => '0');
+   variable result_add        : signed(DATA_WIDTH downto 0)                := (others => '0');
+   variable carry_in          : std_logic                                  := '0';
+   variable carry_out         : std_logic                                  := '0';
+   variable zero_out          : std_logic                                  := '0';
+   variable negative_out      : std_logic                                  := '0';
+   variable overflow_out      : std_logic                                  := '0';
+   variable parity_out        : std_logic                                  := '0';
+   variable result_out        : std_logic_vector(DATA_WIDTH - 1 downto 0)  := (others => '0');
+   variable operandA_sext8    : std_logic_vector(DATA_WIDTH - 8 downto 0)  := (others => '0');
+   variable operandA_signed   : signed(DATA_WIDTH - 1 downto 0)            := (others => '0');
+   variable operandB_signed   : signed(DATA_WIDTH - 1 downto 0)            := (others => '0');
+   variable operandA_unsigned : unsigned(DATA_WIDTH - 1 downto 0)          := (others => '0');
+   variable operandB_unsigned : unsigned(DATA_WIDTH - 1 downto 0)          := (others => '0');
    
    begin
    
       -- Chose carry in
       case param_i.ctrl_op.whichCarry is
-         when CARRY_IN =>
+         when CARRY_INPUT =>
             carry_in := carry_i;
          when CARRY_ONE =>
             carry_in := '1';
@@ -59,152 +94,68 @@ operandB_unsigned <= unsigned(operandB_i);
             carry_in := operandA_i(operandA_i'left);
       end case;
       
-      result_add := signed(add(operandA_i, operandB_i, carry_in));
+      result_add     := signed(add(operandA_i, operandB_i, carry_in)); 
+      result_mult    := signed(multiply(operandA_i, operandB_i));
+      
+      operandA_sext8    := (others => operandA_i(7));
+      
+      operandA_signed   := signed(operandA_i);
+      operandB_signed   := signed(operandB_i);
+                        
+      operandA_unsigned := unsigned(operandA_i);
+      operandB_unsigned := unsigned(operandB_i);      
    
       case param_i.operation is
-         when OP_PT =>
-            result   := resize(operandA_signed, DATA_WIDTH + 1);
+         when OP_PTA =>
+            result   := operandA_signed(31) & operandA_signed;
+         when OP_PTB =>
+            result   := operandB_signed(31) & operandB_signed;
          when OP_ADD =>
-            result   := resultat_add;
+            result   := result_add;
          when OP_AND =>
-            result   := operandA_signed and operandB_signed;
+            result   := signed('0' & (operandA_i and operandB_i));
          when OP_OR =>
-            result   := operandA_signed or operandB_signed;
+            result   := signed('0' & (operandA_i or operandB_i));
          when OP_SHIFT => 
             result   := operandA_signed(0) & carry_in & operandA_signed(operandA_signed'left downto 1);
-      
-      end case;
-      
-      carry_out <= result(DATA_WIDTH);
-      
-      
-            
-         
-            
-   
-   end process;
-
-
-
-
-
-
--- -------------------------------------
--- |   code   |  operation                          
--- +------------------------------------
--- | 00000000 | Add
--- | 00000001 | Add with Carry
--- | 00000010 | Add with Keep Carry
--- | 00000011 | Add with Carry and Keep Carry
--- | 00000100 | Logical AND
--- | 00000101 | Logical AND NOT
--- |          |                        
--- |          |                        
-
-
-   process(code_i, status_i, operandA_i, operandB_i)
-   
-   variable v_operandD  : std_logic_vector(32 downto 0);
-   
-   begin
-      case code_i is
-         -- Add subset
-         when "00000000" => -- Add
-            v_operandD     := operandA_signed + operandB_signed;
-            s_status.carry <= v_operandD(32);
-            s_status.overflow <= 
-            s_operandD     <= v_operandD(31 downto 0);
-         when "0000001" => -- Add with Carry
-            v_operandD     := operandA_signed + operandB_signed + resize(signed('0' & status_i.carry), operandA_signed'range);
-            s_status.carry <= v_operandD(32);
-            s_operandD     <= v_operandD(31 downto 0);
-         when "00000010" => -- Add with Keep Carry
-            v_operandD     := operandA_signed + operandB_signed;
-            s_status.carry <= status_i.carry;
-            s_operandD     <= v_operandD(31 downto 0);
-         when "00000011" => -- Add with Carry and Keep Carry
-            v_operandD     := operandA_signed + operandB_signed + resize(signed('0' & status_i.carry), operandA_signed'range);
-            s_status.carry <= status_i.carry;
-            s_operandD     <= v_operandD(31 downto 0);         
-            
-         when "00000100" => -- Logical AND
-            s_operandD     <= std_logic_vector(operandA_signed and operandB_signed);
-            s_status.carry <= '0';
-         when "00000101" => -- Logical AND NOT
-            s_operandD     <= std_logic_vector(operandA_signed and not(operandB_signed));
-            s_status.carry <= '0';         
-            
-         when "00000110" => -- Logical OR
-            s_operandD     <= std_logic_vector(operandA_signed or operandB_signed);
-            s_status.carry <= '0';
-         
-         -- Subtract subset
-         when "00000111" => -- Substract
-            v_operandD     := operandA_signed - operandB_signed;
-            s_status.carry <= v_operandD(32);
-            s_operandD     <= v_operandD(31 downto 0);
-         when "00001000" => -- Substract with Carry
-            v_operandD     := operandA_signed - operandB_signed - resize(signed('0' & status_i.carry), operandA_signed'range);
-            s_status.carry <= v_operandD(32);
-            s_operandD     <= v_operandD(31 downto 0);
-         when "00001001" => -- Substract and keep Carry
-            v_operandD     := operandA_signed - operandB_signed;
-            s_status.carry <= status_i.carry;
-            s_operandD     <= v_operandD(31 downto 0);
-         when "00001010" => -- Substract with Carry and Keep Carry
-            v_operandD     := operandA_signed - operandB_signed - resize(signed('0' & status_i.carry), operandA_signed'range);
-            s_status.carry <= status_i.carry;
-            s_operandD     <= v_operandD(31 downto 0);
-            
-         when "00001011" => -- Sign Extend Halfword
-            s_operandD     <= std_logic_vector(resize(operandA_signed(15 downto 0), 32));
-            s_status.carry <= '0';
-         when "00001011" => -- Sign Extend Byte
-            s_operandD     <= std_logic_vector(resize(operandA_signed(7 downto 0), 32));
-            s_status.carry <= '0';
-         
-         when "00001100" => -- Shift Right Arithmetic
-            s_operandD(31)          <= operandA_i(31);
-            s_operandD(30 downto 0) <= operandA_i(31 downto 1);
-            s_status.carry          <= operandA_i(0);
-         when "00001101" => -- Shift Right with Carry
-            s_operandD(31)          <= status_i.carry;
-            s_operandD(30 downto 0) <= operandA_i(31 downto 1);
-            s_status.carry          <= operandA_i(0);            
-         when "00001110" => -- Shift Right Logical
-            s_operandD(31)          <= '0';
-            s_operandD(30 downto 0) <= operandA_i(31 downto 1);
-            s_status.carry          <= operandA_i(0);            
-
-         when "00001111" => -- Logical Excluse OR
-            s_operandD     <= std_logic_vector(operandA_signed xor operandB_signed);
-            s_status.carry          <= '0';
-         
-         when "00010000" => -- Barrel Shift Right Logical
-            s_operandD     <= std_logic_vector(sll(operandA_signed, to_integer(operandB_signed(4 downto 0)));
-            s_status.carry <= '0';
-         when "00010001" => -- Barrel Shift Right Arithmetical
-            s_operandD     <= std_logic_vector(srl(operandA_unsigned, to_integer(operandB_signed(4 downto 0)));
-            s_status.carry <= '0';       
-         when "00010001" => -- Barrel Shift Left Logical (srl shift right)
-            s_operandD     <= std_logic_vector(srl(operandA_signed, to_integer(operandB_signed(4 downto 0)));
-            s_status.carry <= '0';      
-
+         when OP_XOR =>
+            result   := signed('0' & (operandA_i xor operandB_i));
+         when OP_SEXT8 => 
+            result   := signed(operandA_sext8) &  signed(operandA_i(7 downto 0));
+         when OP_SEXT16 =>
+            result   := '0' & resize(operandA_signed(15 downto 0), DATA_WIDTH);
+         when OP_MULT =>
+            case param_i.ctrl_op.ctrlShift is
+               when LSW    => result := result_mult(DATA_WIDTH downto 0);
+               when HSW    => result := result_mult(2*(DATA_WIDTH-1)+1) & result_mult(2*(DATA_WIDTH-1)+1 downto DATA_WIDTH);
+            end case;
+         when OP_BS =>
+            case param_i.ctrl_op.ctrlShift is
+               when LEFT_SHIFT         => result := '0' & shift_left(operandA_signed, to_integer(operandB_unsigned(4 downto 0)));
+               when RIGHT_SHIFT_ARITH  => result := '0' & shift_right(operandA_signed, to_integer(operandB_unsigned(4 downto 0))); -- Insert left most b
+               when RIGHT_SHIFT_LOGIC  => result := '0' & signed(shift_right(operandA_unsigned, to_integer(operandB_unsigned(4 downto 0)))); -- Insert 0 
+               when others             => result := (others => '0');
+            end case;
          when others =>
-            s_operandD     <= (others => '0');
-            s_status.carry <= '0';
-      
+            result   := (others => '0');
+            assert false report "Unknown operation for ALU" severity error;
       end case;
-   
-   end process;
-   
-   
-   process(s_operandD, s_status.carry)
-   begin
-      s_status.zero        <= is_zero(s_operandD);
-      s_status.negative    <= is_negative(s_operandD);
-      s_status.overflow    <= (not s_status.carry and s_operandD(s_operandD'left)) or (s_status.carry and not s_operandD(s_operandD'left));
-      s_status.parity      <= '0'; -- TODO
+      
+      carry_out      := result(DATA_WIDTH);
+      result_out     := std_logic_vector(result(DATA_WIDTH-1 downto 0));
+      zero_out       := is_zero(result_out);
+      negative_out   := is_negative(result_out);
+      overflow_out   := (not carry_out and result_out(result_out'left)) or (carry_out and not result_out(result_out'left));
+      parity_out     := '0'; -- TODO
+      
+      -- Mapping output
+      status_o.carry    <= carry_out;
+      status_o.zero     <= zero_out;
+      status_o.negative <= negative_out;
+      status_o.overflow <= overflow_out;
+      status_o.parity   <= parity_out;
+      operandD_o        <= result_out;
+      
    end process;
 
 end rtl;
