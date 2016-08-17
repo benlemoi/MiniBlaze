@@ -71,6 +71,7 @@ component RAMB16_S9
       DO             : out std_logic_vector(8  downto 0);
       DOP            : out std_logic_vector(0  downto 0)
    );
+end component;
    
    
 begin
