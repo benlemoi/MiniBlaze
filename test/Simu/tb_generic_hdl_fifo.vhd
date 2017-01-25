@@ -2,7 +2,13 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+library vunit_lib;
+context vunit_lib.vunit_context;
+
 entity tb_generic_hdl_fifo is
+   generic (
+      runner_cfg  : string
+   );
 end tb_generic_hdl_fifo;
 
 architecture simu of tb_generic_hdl_fifo is
@@ -28,57 +34,111 @@ component generic_hdl_fifo is
    );
 end component;
 
-constant size_data   : integer := 8;
-constant log2_depth  : integer := 4;
+constant C_DEPTH           : integer := 6;
+constant C_WIDTH           : integer := 16;
+constant C_PERIOD          : time := 8 ns;
 
-signal clk           : std_logic := '0';
-signal rst_n         : std_logic := '1';
-signal data_wr       : std_logic_vector(size_data-1 downto 0);
-signal data_rd       : std_logic_vector(size_data-1 downto 0);
-signal wr_en         : std_logic := '0';
-signal rd_en         : std_logic := '0';
-signal nb_data       : std_logic_vector(log2_depth downto 0);
-signal empty         : std_logic;
-signal full          : std_logic;
-signal rd_valid      : std_logic;
-signal cpt           : unsigned(size_data-1 downto 0);
+signal s_zero              : std_logic_vector(C_WIDTH-1 downto 0)       := (others => '0');
+signal s_one               : std_logic_vector(C_WIDTH-1 downto 0)       := (others => '1');
+signal s_test              : std_logic_vector(C_WIDTH-1 downto 0);
+
+signal clk                 : std_logic                                  := '0';   
+signal rst_n               : std_logic                                  := '0';
+signal s_data_wr           : std_logic_vector(C_WIDTH-1 downto 0)       := (others => '0');
+signal s_wr_en             : std_logic                                  := '0';
+signal s_rd_en             : std_logic                                  := '0';
+signal s_data_rd           : std_logic_vector(C_WIDTH-1 downto 0)       := (others => '0');
+signal s_rd_valid          : std_logic                                  := '0';
+signal s_nb_data           : std_logic_vector(C_DEPTH downto 0)         := (others => '0');
+signal s_empty             : std_logic                                  := '0';
+signal s_full              : std_logic                                  := '0';
 
 begin
 
-   clk   <= not clk after 4 ns; -- 125 Mhz
-   rst_n <= '0', '1' after 80 ns;
-   wr_en <= '0', '1' after 88 ns, '1' after 216 ns;
-   rd_en <= '0', '1' after 216 ns;
+   clk      <= not clk after C_PERIOD/2;
+   s_test   <= x"CAFE";
 
-   i_dut : generic_hdl_fifo 
-   generic map (
-      G_DEPTH_LOG2      => log2_depth,
-      G_WIDTH           => size_data
+   i_dut : generic_hdl_fifo
+   generic map(
+      G_DEPTH_LOG2      => C_DEPTH,
+      G_WIDTH           => C_WIDTH
    )
-   port map (
-      clk      => clk,
-      rst_n    => rst_n,
-      data_wr  => data_wr,
-      wr_en    => wr_en,
-      rd_en    => rd_en,
-      data_rd  => data_rd,
-      rd_valid => rd_valid,
-      nb_data  => nb_data,
-      empty    => empty,
-      full     => full
+   port map(
+      clk               => clk,
+      rst_n             => rst_n,
+      --
+      data_wr           => s_data_wr,
+      wr_en             => s_wr_en,
+      rd_en             => s_rd_en,
+      data_rd           => s_data_rd,
+      rd_valid          => s_rd_valid,
+      -- 
+      nb_data           => s_nb_data,
+      empty             => s_empty,
+      full              => s_full
    );
    
-   process(clk)
+   main : process
+      variable filter : log_filter_t;
    begin
-      if rising_edge(clk) then
-         if rst_n = '0' then
-            data_wr  <= (others => '0');
-            cpt      <= (others => '0');
-         else
-            data_wr  <= std_logic_vector(cpt);
-            cpt      <= cpt + 1;
+      checker_init(  display_format => verbose,
+                     file_name      => join(output_path(runner_cfg), "error.cvs"),
+                     file_format    => verbose_csv);
+      logger_init(   display_format => verbose,
+                     file_name      => join(output_path(runner_cfg), "log.csv"),
+                     file_format    => verbose_csv);
+      stop_level((debug,verbose), display_handler, filter);
+      test_runner_setup(runner,runner_cfg);
+      while test_suite loop
+         reset_checker_stat;
+         wait until rising_edge(clk);
+         rst_n <= '0';
+         wait for 10*C_PERIOD;
+         rst_n <= '1';
+         wait until rising_edge(clk);
+         if run("test_during_reset") then
+            rst_n <= '0';
+            wait until rising_edge(clk);
+            check_equal(s_data_wr, s_zero(s_data_wr'left downto 0));
+            check_equal(s_wr_en, '0');
+            check_equal(s_rd_en, '0');
+            check_equal(s_data_rd, s_zero(s_data_rd'left downto 0));
+            check_equal(s_rd_valid, '0');
+            check_equal(s_nb_data, s_zero(s_nb_data'left downto 0));
+            check_equal(s_empty, '1');
+            check_equal(s_full, '1');
+         elsif run("test_write_one_word") then
+            wait until rising_edge(clk);
+            s_wr_en     <= '1';
+            s_data_wr   <= s_test;
+            check_equal(s_empty, '1');
+            check_equal(s_nb_data, s_zero(s_nb_data'left downto 0));
+            wait until rising_edge(clk);
+            s_wr_en     <= '0';
+            s_rd_en     <= '1';
+            wait until rising_edge(clk);
+            check_equal(s_nb_data, std_logic_vector(to_unsigned(1,C_DEPTH+1)));
+            check_equal(s_empty, '0');            
+            s_rd_en     <= '0';            
+            wait until rising_edge(clk);
+            check_equal(s_empty, '1');
+            check_equal(s_nb_data, s_zero(s_nb_data'left downto 0));            
+            check_equal(s_data_rd, s_test);
+            check_equal(s_rd_valid, '1');
+            wait until rising_edge(clk);
+            check_equal(s_rd_valid, '0');
+         elsif run("test_after_reset") then
+            check_equal(s_data_wr, s_zero(s_data_wr'left downto 0));
+            check_equal(s_wr_en, '0');
+            check_equal(s_rd_en, '0');
+            check_equal(s_data_rd, s_zero(s_data_rd'left downto 0));
+            check_equal(s_rd_valid, '0');
+            check_equal(s_nb_data, s_zero(s_nb_data'left downto 0));
+            check_equal(s_empty, '1');
+            check_equal(s_full, '0');            
          end if;
-      end if;
+      end loop;
+      test_runner_cleanup(runner);
    end process;
-
+   
 end simu;
