@@ -9,4 +9,4 @@ def call(cmd):
 if BUILD_NAME == "ACCEPTANCE":
     call('python run.py -p2')
 else:
-raise ValueError(BUILD_NAME)
+    raise ValueError(BUILD_NAME)
