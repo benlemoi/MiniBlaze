@@ -65,8 +65,7 @@ end generic_hdl_fifo;
 
 architecture rtl of generic_hdl_fifo is
 
-constant c_size_max  : integer                           := 2**G_DEPTH_LOG2-1;
-constant c_one_loop  : unsigned(G_DEPTH_LOG2 downto 0)   := (G_DEPTH_LOG2 => '1', others => '0');
+signal c_one_loop  : unsigned(G_DEPTH_LOG2 downto 0)   ;--:= (G_DEPTH_LOG2 => '1', others => '0');
 
 type ram_type is array (2**G_DEPTH_LOG2-1 downto 0) of std_logic_vector (G_WIDTH-1 downto 0);
 signal RAM     : ram_type := (others => (others => '0'));
@@ -84,6 +83,9 @@ signal r_rd_valid          : std_logic                               := '0';
 signal s_nb_data           : unsigned(G_DEPTH_LOG2 downto 0)         := (others => '0');
 
 begin
+
+   c_one_loop(G_DEPTH_LOG2)            <= '1';
+   c_one_loop(G_DEPTH_LOG2-1 downto 0) <= (others => '0');
 
    cur_ptr_wr_lsb <= cur_ptr_wr(G_DEPTH_LOG2-1 downto 0);
    cur_ptr_rd_lsb <= cur_ptr_rd(G_DEPTH_LOG2-1 downto 0);
@@ -124,7 +126,9 @@ begin
    end process;
   
    -- Status
-   s_full      <= '1' when cur_ptr_wr = cur_ptr_rd + c_one_loop else '0';
+   s_full      <= '1' when cur_ptr_wr = cur_ptr_rd + c_one_loop else 
+                  '1' when rst_n = '0' else
+                  '0';
    s_empty     <= '1' when cur_ptr_wr = cur_ptr_rd else '0';
    s_nb_data   <= resize(cur_ptr_wr,G_DEPTH_LOG2+1)-resize(cur_ptr_rd,G_DEPTH_LOG2+1);
    
@@ -136,5 +140,3 @@ begin
    rd_valid <= r_rd_valid;
 
 end rtl;
-      
-      
