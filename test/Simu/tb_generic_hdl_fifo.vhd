@@ -136,6 +136,8 @@ begin
             check_equal(s_nb_data, s_zero(s_nb_data'left downto 0));
             check_equal(s_empty, '1');
             check_equal(s_full, '0');            
+         elsif run("test_fail") then
+            assert false;
          end if;
       end loop;
       test_runner_cleanup(runner);
