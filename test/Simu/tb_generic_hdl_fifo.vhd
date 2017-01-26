@@ -34,7 +34,7 @@ component generic_hdl_fifo is
    );
 end component;
 
-constant C_DEPTH           : integer := 6;
+constant C_DEPTH           : integer := 4;
 constant C_WIDTH           : integer := 16;
 constant C_PERIOD          : time := 8 ns;
 
@@ -52,6 +52,7 @@ signal s_rd_valid          : std_logic                                  := '0';
 signal s_nb_data           : std_logic_vector(C_DEPTH downto 0)         := (others => '0');
 signal s_empty             : std_logic                                  := '0';
 signal s_full              : std_logic                                  := '0';
+signal r_cnt               : unsigned(C_WIDTH-1 downto 0)               := (others => '0');
 
 begin
 
@@ -89,6 +90,9 @@ begin
                      file_format    => verbose_csv);
       stop_level((debug,verbose), display_handler, filter);
       test_runner_setup(runner,runner_cfg);
+      enable_pass_msg;
+      enable_pass_msg(file_handler);
+      enable_pass_msg(display_handler);
       while test_suite loop
          reset_checker_stat;
          wait until rising_edge(clk);
@@ -135,10 +139,131 @@ begin
             check_equal(s_rd_valid, '0');
             check_equal(s_nb_data, s_zero(s_nb_data'left downto 0));
             check_equal(s_empty, '1');
-            check_equal(s_full, '0');            
+            check_equal(s_full, '0');
+         elsif run("write_full_then_read") then
+            wait until rising_edge(clk);
+            s_wr_en     <= '1';
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);
+            s_data_wr   <= std_logic_vector(r_cnt);
+            wait until rising_edge(clk);            
+            check_equal(s_full, '1');
+            s_rd_en     <= '1';
+            s_wr_en     <= '0';
+            wait until s_rd_valid = '1' and rising_edge(clk);
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(1,C_WIDTH)), "Should be 1");
+            wait until rising_edge(clk);                                  
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(2,C_WIDTH)), "Should be 2");
+            wait until rising_edge(clk);                                
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(3,C_WIDTH)), "Should be 3");
+            wait until rising_edge(clk);                                 
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(4,C_WIDTH)), "Should be 4");
+            wait until rising_edge(clk);                                  
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(5,C_WIDTH)), "Should be 5");
+            wait until rising_edge(clk);                                
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(6,C_WIDTH)), "Should be 6");
+            wait until rising_edge(clk);                                 
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(7,C_WIDTH)), "Should be 7");
+            wait until rising_edge(clk);                                  
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(8,C_WIDTH)), "Should be 8");
+            wait until rising_edge(clk);                                  
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(9,C_WIDTH)), "Should be 9");
+            wait until rising_edge(clk);
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(10,C_WIDTH)));
+            wait until rising_edge(clk);
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(11,C_WIDTH)));
+            wait until rising_edge(clk);
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(12,C_WIDTH)));
+            wait until rising_edge(clk);
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(13,C_WIDTH)));
+            wait until rising_edge(clk);
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(14,C_WIDTH)));
+            wait until rising_edge(clk);
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(15,C_WIDTH)));
+            wait until rising_edge(clk);
+            check_equal(s_data_rd, std_logic_vector(to_unsigned(16,C_WIDTH)));
+            wait until rising_edge(clk);
+            log(to_string(s_nb_data));
+            s_rd_en <= '0';            
+            check_equal(s_empty, '1');
+            check_equal(s_rd_valid, '0');
+         elsif run("read_when_emtpy") then
+            s_rd_en <= '1';
+            wait until rising_edge(clk);
+            s_rd_en <= '0';
+            wait until rising_edge(clk);
+            check_equal(s_rd_valid, '0');
+            check_equal(s_empty, '1');
+            check_equal(s_nb_data, std_logic_vector(to_unsigned(0,C_DEPTH+1)));
+            s_wr_en <= '1';
+            wait until rising_edge(clk);
+            s_wr_en <= '0';
+            wait until rising_edge(clk);
+            check_equal(s_nb_data, std_logic_vector(to_unsigned(1,C_DEPTH+1)));
+            check_equal(s_empty, '0');
+         elsif run("write_when_full") then
+            s_wr_en  <= '1';
+            wait until s_full = '1' and rising_edge(clk);
+            s_wr_en <= '0';
+            wait until rising_edge(clk);
+            check_equal(unsigned(s_nb_data), (to_unsigned(2**C_DEPTH, C_DEPTH+1)), "Should be full");
+            wait until rising_edge(clk);
+            s_wr_en <= '1';
+            wait until rising_edge(clk);
+            check_equal(unsigned(s_nb_data), (to_unsigned(2**C_DEPTH, C_DEPTH+1)));
+            s_rd_en <= '1';
+            wait until rising_edge(clk);
+            s_rd_en <= '0';
+            wait until rising_edge(clk);
+            check_equal(s_rd_valid, '1');
+            check_equal(unsigned(s_nb_data), (to_unsigned((2**C_DEPTH)-1, C_DEPTH+1)));
+            check_equal(s_full, '0');
          end if;
       end loop;
       test_runner_cleanup(runner);
    end process;
+   
+   
+   process(clk)
+   begin
+      if rising_edge(clk) then
+         if rst_n = '0' then
+            r_cnt <= (others => '0');
+         else
+            r_cnt <= r_cnt + 1;
+         end if;
+      end if;
+   end process;
+            
    
 end simu;
