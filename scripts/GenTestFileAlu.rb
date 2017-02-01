@@ -203,7 +203,7 @@ end
 if __FILE__ == $0
     include TypeVHDL
     N = 4096*8
-    testAlu = TestFileAlu.new('data_pkg.vhd', N)
+    testAlu = TestFileAlu.new('test/Simu/data_pkg.vhd', N)
     (0...N).each do |i|
         op1 = rand((2**31)-1)
         op2 = rand((2**31)-1)
