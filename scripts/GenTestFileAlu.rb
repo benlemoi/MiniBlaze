@@ -1,6 +1,7 @@
 module TypeVHDL
 
-    T_opcode_alu = [ "OP_PT",   
+    T_opcode_alu = [ "OP_PTA",
+                     "OP_PTB",    
                      "OP_ADD",  
                      "OP_AND", 
                      "OP_OR",  
@@ -52,13 +53,14 @@ class TestFileAlu
                 "\n"
                 
 
-    def initialize(file_path)    
+    def initialize(file_path, size)    
         @file       = File.new(file_path, "wb")
         @file.write(STR_START)
         @last_carry = 0
         @first      = true
         @str_to_wr = ""
         @nb_data    = 0
+        @file.write("constant data_in : t_vect_test_data(0 to #{size-1}) :=\n")        
     end
     
     def write(op1, op2, carry_in, operation, keepCarry, negOpA, negOpB, carry_in_type, ctrlShift)
@@ -74,11 +76,10 @@ class TestFileAlu
         else
             str += ","
         end
-        str += "(#{format32b(op1)}, #{format32b(op2)}, #{format1b(carry_in)}, #{T_opcode_alu[operation]}, #{format1b(keepCarry)}, #{format1b(negOpA)}, #{format1b(negOpB)}, "\
+        str += "#{@nb_data} => (#{format32b(op1)}, #{format32b(op2)}, #{format1b(carry_in)}, #{T_opcode_alu[operation]}, #{format1b(keepCarry)}, #{format1b(negOpA)}, #{format1b(negOpB)}, "\
               "#{T_type_carry[carry_in_type]}, #{T_type_shift[ctrlShift]}, #{format32b(result)}, #{format1b(carry_out)}, #{format1b(zero)}, #{format1b(negative)}, #{format1b(overflow)}, #{format1b(parity)})\r\n"
-        # @file.write(str)
-        @nb_data += 1 
-        @str_to_wr += str
+        @file.write(str)
+        @nb_data += 1
     
     end
     
@@ -95,7 +96,6 @@ class TestFileAlu
     end
     
     def compute(op1, op2, carry_in, operation, keepCarry, negOpA, negOpB, carry_in_type, ctrlShift)
-        
         result      = 0
         carry_out   = 0
         zero        = 0
@@ -130,33 +130,35 @@ class TestFileAlu
         end
         
         case operation
-            when 0 # Pass Through
+            when 0 # Pass Through A
                 result = op1
-            when 1 # Add
+            when 1 # Pass Through A
+                result = op2              
+            when 2 # Add
                 result = op1 + op2 + carry
-            when 2 # And
-                result = op1 & op2
-            when 3 # Or
+            when 3 # And
+                result = op1 & op2             
+            when 4 # Or
                 result = op1 | op2
-            when 4 # Right Shift
+            when 5 # Right Shift
                 result = ((op1 >> 1)&0x7fffffff) | ((carry<<31)&0x80000000) | ((op1&0x1)<<32)
-            when 5 # Xor
+            when 6 # Xor
                 result = op1 ^ op2
-            when 6 # Sign extend Byte
+            when 7 # Sign extend Byte
                 if (op1>>7)&0x1 == 1
                     result = (op1&0x000000ff) | (0xffffff00)
                 else
                     result = (op1&0x000000ff)
                 end
-            when 7 # Sign extend Word
+            when 8 # Sign extend Word
                 if (op1>>15)&0x1 == 1
                     result = (op1&0x0000ffff) | (0xffff0000)
                 else
                     result = (op1&0x0000ffff)
                 end
-            when 8 # Multiplication
+            when 9 # Multiplication
                 result = op1*op2
-            when 9 # Barrel Shift
+            when 10 # Barrel Shift
                 case ctrlShift 
                     when 0
                         result = op1 << op2
@@ -183,9 +185,6 @@ class TestFileAlu
     end
     
     def close
-    
-        @file.write("constant data_in : t_vect_test_data(0 to #{@nb_data-1}) :=\n")
-        @file.write(@str_to_wr)
         @file.write(");\n")
         @file.write("end data_pkg;")
         @file.close
@@ -203,23 +202,32 @@ end
 
 if __FILE__ == $0
     include TypeVHDL
-    # ((x"50c27c59", x"185168a2", '1', OP_ADD, '1', '0', '1', CARRY_INPUT, LEFT_SHIFT, x"387113b7", '1', '0', '0', '1', '0')
-    # ((x"41bd7de7", x"5b2c6de8", '1', OP_ADD, '0', '0', '1', CARRY_ARITH, LEFT_SHIFT, x"e6910ffe", '0', '0', '1', '1', '0')
-    testAlu = TestFileAlu.new('data_pkg.vhd')
-    N = 64
-    (0..N).each do |i|
+    N = 4096*8
+    testAlu = TestFileAlu.new('data_pkg.vhd', N)
+    (0...N).each do |i|
         op1 = rand((2**31)-1)
         op2 = rand((2**31)-1)
         carry = rand(2)
-        operation = rand(8)
+        operation = rand(T_opcode_alu.size-1)
         negOpA = 0
         negOpB = 0
         keepCarry = rand(2)
         carry_in_type = rand(4)
         ctrlShift = rand(3)
         
-        testAlu.write(op1,op2,carry, operation, keepCarry, negOpA, negOpB, carry_in_type,ctrlShift)
+        testAlu.write(op1,op2,carry,operation, keepCarry, negOpA, negOpB, carry_in_type,ctrlShift)
     end
+    # testAlu = TestFileAlu.new('data_pkg1.vhd', 1)
+    # op1 = 0x75ee090a
+    # op2 = 0x2d015b30
+    # carry = 1
+    # operation = 3
+    # negOpA = 0
+    # negOpB = 0
+    # keepCarry = 1
+    # carry_in_type = 3
+    # ctrlShift = 0
+    # testAlu.write(op1,op2,carry,operation, keepCarry, negOpA, negOpB, carry_in_type,ctrlShift)
     # testAlu.test
     testAlu.close
 end
