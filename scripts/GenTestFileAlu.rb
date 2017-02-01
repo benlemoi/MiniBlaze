@@ -161,11 +161,11 @@ class TestFileAlu
             when 10 # Barrel Shift
                 case ctrlShift 
                     when 0
-                        result = op1 << op2
+                        result = op1 << (op2&0x1F)
                     when 1
-                        result = op1 >> op2
+                        result = op1 >> (op2&0x1F)
                     when 2
-                        result = ((-(op1 >> op2))-1)
+                        result = op1.abs >> (op2&0x1F)
                     else
                         result = 0
                 end
@@ -173,10 +173,12 @@ class TestFileAlu
                 result = 0
         end
         
-        carry_out   = (result>>32)&0x1
-        zero        = 1 if 0 == result
+        carry_out   = 0
+        carry_out   = (result>>32)&0x1 if [0,1,2,5,7,8,9].include?(operation)
+        zero        = 1 if 0 == (result&0xFFFFFFFF)
         negative    = 1 if (1 == (result>>31)&0x1)
-        overflow    = ( ((~carry_out)&0x1) & ((result>>31)&0x1) ) | ( ((carry_out)&0x1) & ((~(result>>31))&0x1) )
+        # overflow    = ( ((~carry_out)&0x1) & ((result>>31)&0x1) ) | ( ((carry_out)&0x1) & ((~(result>>31))&0x1) )
+        overflow    = ( ((carry_out==0) ? 1 : 0) & ((result>>31)&0x1) ) | ( ((carry_out)&0x1) & ((((result>>31)&0x1)==0) ? 1 : 0) )
         parity      = 0
         result      = result&0xffffffff
         
@@ -202,13 +204,13 @@ end
 
 if __FILE__ == $0
     include TypeVHDL
-    N = 4096*8
+    N = 4096*8;
     testAlu = TestFileAlu.new('test/Simu/data_pkg.vhd', N)
     (0...N).each do |i|
         op1 = rand((2**31)-1)
         op2 = rand((2**31)-1)
         carry = rand(2)
-        operation = rand(T_opcode_alu.size-1)
+        operation = rand(T_opcode_alu.size)
         negOpA = 0
         negOpB = 0
         keepCarry = rand(2)
