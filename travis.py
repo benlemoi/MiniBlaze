@@ -7,6 +7,7 @@ def call(cmd):
     check_call(cmd, shell=True)
 
 if BUILD_NAME == "ACCEPTANCE":
+    call("ruby scripts/GenTestFileAlu.rb")
     call('python run.py -p2')
 else:
     raise ValueError(BUILD_NAME)
