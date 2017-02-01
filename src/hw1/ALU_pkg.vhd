@@ -103,7 +103,7 @@ package ALU_pkg is
          operation   : t_opcode_alu;
          ctrl_op     : t_ctrl_op_alu;
       end record;
-   constant c_param_alu_null : t_param_alu := (OP_PT, c_ctrl_op_alu_null );
+   constant c_param_alu_null : t_param_alu := (OP_PTA, c_ctrl_op_alu_null );
     
    function is_zero(a : std_logic_vector) return std_logic;
    function is_negative(a : std_logic_vector) return std_logic;
