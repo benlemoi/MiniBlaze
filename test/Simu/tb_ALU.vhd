@@ -42,14 +42,17 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-library std;
-use std.textio.all;
-
 library work;
 use work.ALU_pkg.all;
 use work.data_pkg.all;
 
+library vunit_lib;
+context vunit_lib.vunit_context;
+
 entity tb_ALU is
+   generic (
+      runner_cfg  : string
+   );
 end tb_ALU;
 
 architecture simu of tb_ALU is
@@ -97,6 +100,10 @@ signal r_count          : unsigned(31 downto 0)                   := (others => 
 signal r_set            : std_logic := '0';
 signal r_error          : std_logic := '0';
 
+signal r_ack_test       : std_logic := '0';
+signal r_start_test     : std_logic := '0';
+signal r_do_test        : fsm_test := st_start;
+
 begin
 
    clk   <= not clk after PERIOD_CLK/2;
@@ -113,24 +120,61 @@ begin
       operandD_o  => s_operandD,
       status_o    => s_status  
    );            
+   
+   main : process
+   begin
+      test_runner_setup(runner,runner_cfg);
+      while test_suite loop
+         if run("test_1") then
+            wait until rising_edge(clk);
+            r_start_test <= '1';
+            r_do_test    <= st_test_1;
+            wait until rising_edge(clk);
+            r_start_test <= '0';
+            wait until r_ack_test = '1' and rising_edge(clk);
+         elsif run("test_2") then
+            wait until rising_edge(clk);
+            r_start_test <= '1';
+            r_do_test    <= st_test_2;
+            wait until rising_edge(clk);
+            r_start_test <= '0';
+            wait until r_ack_test = '1' and rising_edge(clk);
+         elsif run("test_random") then
+            wait until rising_edge(clk);
+            r_start_test <= '1';
+            r_do_test    <= st_test_3;
+            wait until rising_edge(clk);
+            r_start_test <= '0';
+            wait until r_ack_test = '1' and rising_edge(clk);      
+         end if;
+      end loop;
+      test_runner_cleanup(runner);
+   end process;
+            
+      
 
     
    p_test : process(clk)
    begin
       if rising_edge(clk) then
+         r_ack_test <= '0';
          case r_fsm_test is
             when st_start =>
-               r_fsm_test  <= st_test_1;
+               if r_start_test = '1' then
+                  r_fsm_test <= r_do_test;
+               end if;
                r_count     <= (others => '0');
+               r_set       <= '1';       
+               r_error     <= '0';                  
             when st_test_1 => -- PassThrough
             
                -- Generation control
                if r_count = 16 then
                   r_count     <= (others => '0');
-                  r_fsm_test  <= st_test_2;
+                  r_fsm_test  <= r_fsm_test;
                else
                   r_count                          <= r_count + 1;
-                  s_param.operation                <= OP_PT;
+                  s_param.operation                <= OP_PTA;
                   s_param.ctrl_op.keepCarry        <= '0';
                   s_param.ctrl_op.negOperandA      <= '0';
                   s_param.ctrl_op.negOperandB      <= '0';
@@ -147,6 +191,7 @@ begin
                      ASSERT false report "Test 1 failure" severity failure;
                   end if;
                end if;
+               r_ack_test <= '1';
                
             when st_test_2 => -- Add
                s_param.operation                <= OP_ADD;
@@ -161,14 +206,13 @@ begin
                r_count                          <= r_count + 1;
                
                if r_count /= 0 then
-                  r_fsm_test  <= st_test_3;
-                  r_set       <= '1';
+                  r_fsm_test  <= r_fsm_test;
                   r_count     <= (others => '0');
-                  r_error     <= '0';
                   if s_operandD /= x"8000FFFE" then
                      assert false report "Test 2 failure" severity failure;
                   end if;
                end if;
+               r_ack_test <= '1';
                
             when st_test_3 => -- Random
                if r_count < data_in'length then
@@ -185,27 +229,31 @@ begin
                      r_set                            <= '0';
                      r_error                          <= '0';
                   else
-                     r_set                            <= '1';
-                     r_count                          <= r_count + 1;
                      if data_in(to_integer(r_count)).operandD /= s_operandD then
-                        r_error <= '1';
-                        assert false report "Test 3 failure" severity failure;
+                        assert false report "Test 3 failure operandD : " & integer'image(to_integer(r_count)) severity failure;
                      end if;
                      if data_in(to_integer(r_count)).carry_out /= s_status.carry then
                         r_error <= '1';
+                        assert false report "Test 3 failure Carry out: " & integer'image(to_integer(r_count)) severity failure;
                      end if;
                      if data_in(to_integer(r_count)).zero /= s_status.zero then
                         r_error <= '1';
+                        assert false report "Test 3 failure Zero: " & integer'image(to_integer(r_count)) severity failure;
                      end if;
                      if data_in(to_integer(r_count)).negative /= s_status.negative then
                         r_error <= '1';
+                        assert false report "Test 3 failure Negative: " & integer'image(to_integer(r_count)) severity failure;
                      end if;
                      if data_in(to_integer(r_count)).overflow /= s_status.overflow then
                         r_error <= '1';
                      end if;
+                     
+                     r_set                            <= '1';
+                     r_count                          <= r_count + 1;                     
                   end if;
                else
-                  r_fsm_test <= st_end;
+                  r_ack_test <= '1';
+                  r_fsm_test <= st_start;
                end if;       
                
             when st_end => null;
@@ -219,4 +267,3 @@ begin
 
 
 end simu;
-
