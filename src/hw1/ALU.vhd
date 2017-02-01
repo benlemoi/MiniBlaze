@@ -67,6 +67,7 @@ begin
    
    variable result            : signed(DATA_WIDTH downto 0)                := (others => '0');
    variable result_add        : signed(DATA_WIDTH downto 0)                := (others => '0');
+   variable result_mult       : signed(2*(DATA_WIDTH-1)+1 downto 0)        := (others => '0');
    variable carry_in          : std_logic                                  := '0';
    variable carry_out         : std_logic                                  := '0';
    variable zero_out          : std_logic                                  := '0';
@@ -74,7 +75,7 @@ begin
    variable overflow_out      : std_logic                                  := '0';
    variable parity_out        : std_logic                                  := '0';
    variable result_out        : std_logic_vector(DATA_WIDTH - 1 downto 0)  := (others => '0');
-   variable operandA_sext8    : std_logic_vector(DATA_WIDTH - 8 downto 0)  := (others => '0');
+   variable operandA_sext8    : std_logic_vector(DATA_WIDTH - 9 downto 0)  := (others => '0');
    variable operandA_signed   : signed(DATA_WIDTH - 1 downto 0)            := (others => '0');
    variable operandB_signed   : signed(DATA_WIDTH - 1 downto 0)            := (others => '0');
    variable operandA_unsigned : unsigned(DATA_WIDTH - 1 downto 0)          := (others => '0');
@@ -121,11 +122,11 @@ begin
          when OP_XOR =>
             result   := signed('0' & (operandA_i xor operandB_i));
          when OP_SEXT8 => 
-            result   := signed(operandA_sext8) &  signed(operandA_i(7 downto 0));
+            result   := '0' & signed(operandA_sext8) &  signed(operandA_i(7 downto 0));
          when OP_SEXT16 =>
             result   := '0' & resize(operandA_signed(15 downto 0), DATA_WIDTH);
          when OP_MULT =>
-            case param_i.ctrl_op.ctrlShift is
+            case param_i.ctrl_op.multType is
                when LSW    => result := result_mult(DATA_WIDTH downto 0);
                when HSW    => result := result_mult(2*(DATA_WIDTH-1)+1) & result_mult(2*(DATA_WIDTH-1)+1 downto DATA_WIDTH);
             end case;
