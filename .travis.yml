@@ -28,4 +28,5 @@ install:
 - pip install vunit_hdl
 
 script:
+- ruby scripts/GenTestFileAlu.rb
 - python travis.py ${BUILD_NAME}
