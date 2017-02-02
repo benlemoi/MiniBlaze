@@ -206,6 +206,7 @@ if __FILE__ == $0
     include TypeVHDL
     N = 4096*8;
     testAlu = TestFileAlu.new('test/Simu/data_pkg.vhd', N)
+    puts("Starting")
     (0...N).each do |i|
         op1 = rand((2**31)-1)
         op2 = rand((2**31)-1)
@@ -216,9 +217,11 @@ if __FILE__ == $0
         keepCarry = rand(2)
         carry_in_type = rand(4)
         ctrlShift = rand(3)
-        
+        print("#{100*i/N}%         \r")
         testAlu.write(op1,op2,carry,operation, keepCarry, negOpA, negOpB, carry_in_type,ctrlShift)
     end
+    print("\n")
+    puts("Done")    
     # testAlu = TestFileAlu.new('data_pkg1.vhd', 1)
     # op1 = 0x75ee090a
     # op2 = 0x2d015b30
