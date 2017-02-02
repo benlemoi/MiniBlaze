@@ -204,7 +204,7 @@ end
 
 if __FILE__ == $0
     include TypeVHDL
-    N = 4096*8;
+    N = 8192;
     testAlu = TestFileAlu.new('test/Simu/data_pkg.vhd', N)
     puts("Starting")
     (0...N).each do |i|
