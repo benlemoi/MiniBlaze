@@ -65,7 +65,6 @@ entity sequencer is
       -- Interface memory out
       addr_mem_out_o    : out std_logic_vector(D_WIDTH-1 downto 0);
       data_mem_out_o    : out std_logic_vector(D_WIDTH-1 downto 0);
-      wr_ack_mem_out_o  ; out std_logic;
       wr_en_mem_out_o   : out std_logic_vector(3 downto 0)
    );
 end sequencer;
@@ -90,6 +89,7 @@ end component;
 -- Signals declaration
 type  fsm_seq is (st_fetch, st_decode, st_execute);
 signal r_fsm_seq                    : fsm_seq := st_fetch;
+signal r_last_state                 : fsm_seq;
 
 -- Special purpose registers
 signal r_ProgramCounter             : unsigned(D_WIDTH-1 downto 0)         := (others => '0');
@@ -153,14 +153,16 @@ begin
    begin
       if rising_edge(clk) then
          if reset_n = '0' then
-            r_fsm_seq         <= st_fetch;
-            r_ProgramCounter  <= (others => '0');
-            r_fsm_fetch       <= st_set_address;
-            r_fsm_load        <= st_set_address;
+            r_fsm_seq                  <= st_fetch;
+            r_last_state               <= st_fetch;
+            r_ProgramCounter           <= (others => '0');
+            r_fsm_fetch                <= st_set_address;
+            r_fsm_load                 <= st_set_address;
          else
             -- Default values
             r_rd_en_mem_in       <= '0';
             r_wr_en_mem_out      <= (others => '0');
+            r_last_state         <= r_fsm_seq;
          
             case r_fsm_seq is
                when st_fetch =>
@@ -179,11 +181,12 @@ begin
                         if data_mem_in_en_i = '1' then
                            r_fsm_seq      <= st_decode;
                            r_instruction  <= s_instruction;
+                           r_fsm_fetch    <= st_set_address;
                         end if;
                      
                      when others =>
                         r_fsm_fetch <= st_set_address;
-                  end case
+                  end case;
 
                when st_decode =>
                   
@@ -203,6 +206,7 @@ begin
                   r_is_store_instruction           <= '0';
                   r_load_store_exclusive           <= '0';
                   r_return_from_subroutine         <= '0';
+                  r_fsm_load                       <= st_set_address;   
                   
                   -- Next stage
                   r_fsm_seq                        <= st_execute;
@@ -347,7 +351,9 @@ begin
                
                   -- Increment r_ProgramCounter of 4 to fetch the next instruction
                   -- Overwrite the value after if a branch is requested
-                  r_ProgramCounter  <= r_ProgramCounter + 4;
+                  if(r_last_state /= st_execute) then
+                     r_ProgramCounter  <= r_ProgramCounter + 4;
+                  end if;
                
                   -- Store ALU output
                   v_GeneralReg(to_integer(unsigned(r_rD_address)))   <= s_output_alu;
@@ -388,7 +394,7 @@ begin
                   -- Load execution
                   elsif r_is_load_instruction = '1' then
                      v_GeneralReg(to_integer(unsigned(r_rD_address))) <= v_GeneralReg(to_integer(unsigned(r_rD_address)));
-                     r_fsm_load  <= st_execute;
+                     r_fsm_seq  <= st_execute;
                      case r_fsm_load is
                         when st_set_address =>
                            r_addr_mem_in     <= unsigned(s_output_alu);
@@ -422,6 +428,7 @@ begin
                                     v_GeneralReg(to_integer(unsigned(r_rD_address)))(31 downto  0) <= data_mem_in_i(31 downto 0);
                                  else
                                     assert false report "Address non-aligned on 32b access" severity error;
+                                 end if;
                                  if r_load_store_exclusive = '1' then
                                     r_MSR(MSR_C) <= '0';
                                  end if;
