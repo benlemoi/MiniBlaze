@@ -210,7 +210,7 @@ if __FILE__ == $0
     (0...N).each do |i|
         op1 = rand((2**31)-1)
         op2 = rand((2**31)-1)
-        carry = rand(3)
+        carry = rand(2)
         operation = rand(T_opcode_alu.size)
         negOpA = 0
         negOpB = 0
