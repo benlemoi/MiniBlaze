@@ -283,10 +283,10 @@ begin
                                       
                      
                      r_param_alu.operation      <= OP_BS;
-                     if r_instruction(15) = '1' then -- bit S (Side bit)
+                     if r_instruction(10) = '1' then -- bit S (Side bit)
                         r_param_alu.ctrl_op.ctrlShift    <= LEFT_SHIFT;
                      else
-                        if r_instruction(14) = '1' then -- bit T (Type bit)
+                        if r_instruction(9) = '1' then -- bit T (Type bit)
                            r_param_alu.ctrl_op.ctrlShift <= RIGHT_SHIFT_ARITH;
                         else
                            r_param_alu.ctrl_op.ctrlShift <= RIGHT_SHIFT_LOGIC;
