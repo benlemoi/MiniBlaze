@@ -192,6 +192,7 @@ begin
    
    main : process
       variable filter : log_filter_t;
+      variable nb_loop : integer := 0;
    begin
       checker_init(  display_format => verbose,
                      file_name      => join(output_path(runner_cfg), "error.cvs"),
@@ -240,8 +241,64 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(2).result));                     
+            check_equal(unsigned(RAM(13)), unsigned(c_test(2).result));        
+         elsif run("test_rsubc") then
+            -- Load test program
+            r_prog_to_run  <= c_test(3).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(3).result)); 
+         elsif run("test_addk") then
+            -- Load test program
+            r_prog_to_run  <= c_test(4).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(4).result));             
+         elsif run("test_cmp") then
+            -- Load test program
+            r_prog_to_run  <= c_test(5).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(RAM(13)(31), c_test(5).result(31));
+         elsif run("test_addi") then
+            -- Load test program
+            r_prog_to_run  <= c_test(6).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(6).result));   
+         elsif run("test_mul") then
+            -- Load test program
+            r_prog_to_run  <= c_test(7).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(7).result));            
          end if;
+         nb_loop := nb_loop+1;
       end loop;
       test_runner_cleanup(runner);
    end process;
