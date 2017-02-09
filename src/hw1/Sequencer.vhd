@@ -150,6 +150,9 @@ begin
    s_instruction  <= data_mem_in_i;
 
    p_seq : process(clk)
+      variable v_instruction_6_5 : std_logic_vector(1 downto 0);
+      variable v_addr_mem_in_1_0 : unsigned(1 downto 0);
+      variable v_output_alu_1_0  : std_logic_vector(1 downto 0);
    begin
       if rising_edge(clk) then
          if reset_n = '0' then
@@ -219,7 +222,7 @@ begin
                   end if;
 
                   -- Store rD address
-                  r_rD_address                     <= r_instruction(25 downto 21);                  
+                  r_rD_address                     <= r_instruction(25 downto 21);          
                
                   -- add, addc, addk, addkc, addi, addic, addik, addikc
                   -- rsub, rsubi
@@ -335,7 +338,8 @@ begin
                   elsif (r_instruction(31 downto 26) = "100100") then 
                      r_param_alu.operation   <= OP_SHIFT;
                      r_wr_carry_output       <= '1';
-                     case r_instruction(6 downto 5) is
+                     v_instruction_6_5 := r_instruction(6 downto 5);
+                     case v_instruction_6_5 is
                         when "00"   => r_param_alu.ctrl_op.whichCarry   <= CARRY_ARITH;
                         when "01"   => r_param_alu.ctrl_op.whichCarry   <= CARRY_INPUT;
                         when "10"   => r_param_alu.ctrl_op.whichCarry   <= CARRY_ZERO;
@@ -404,7 +408,8 @@ begin
                            if data_mem_in_en_i = '1' then
                               r_fsm_seq         <= st_fetch;
                               if r_op_load_store = "00" then
-                                 case r_addr_mem_in(1 downto 0) is
+                                 v_addr_mem_in_1_0 := r_addr_mem_in(1 downto 0);
+                                 case v_addr_mem_in_1_0 is
                                     when "00" =>
                                        v_GeneralReg(to_integer(unsigned(r_rD_address))) <= x"000000" & data_mem_in_i(7 downto 0);
                                     when "01" =>
@@ -415,7 +420,8 @@ begin
                                        v_GeneralReg(to_integer(unsigned(r_rD_address))) <= x"000000" & data_mem_in_i(31 downto 24);
                                  end case;
                               elsif r_op_load_store = "01" then
-                                 case r_addr_mem_in(1 downto 0) is
+                                 v_addr_mem_in_1_0 := r_addr_mem_in(1 downto 0);
+                                 case v_addr_mem_in_1_0 is
                                     when "00" =>
                                        v_GeneralReg(to_integer(unsigned(r_rD_address))) <= x"0000" & data_mem_in_i(15 downto 0);
                                     when "10" =>
@@ -443,7 +449,8 @@ begin
                      r_addr_mem_out    <= s_output_alu;
                      if r_op_load_store = "00" then
                         r_wr_en_mem_out(to_integer(unsigned(s_output_alu(1 downto 0)))) <= '1'; -- others are at '0'
-                        case s_output_alu(1 downto 0) is
+                        v_output_alu_1_0 := s_output_alu(1 downto 0);
+                        case v_output_alu_1_0 is
                            when "00"   =>
                               r_data_mem_out(7  downto  0)  <= v_GeneralReg(to_integer(unsigned(r_rD_address)))(7  downto  0);
                            when "01"   => 
@@ -460,7 +467,8 @@ begin
                            r_wr_en_mem_out   <= "1100";
                         end if;
                         
-                        case s_output_alu(1 downto 0) is
+                        v_output_alu_1_0 := s_output_alu(1 downto 0);
+                        case v_output_alu_1_0 is
                            when "00"   =>
                               r_data_mem_out(15 downto  0)  <= v_GeneralReg(to_integer(unsigned(r_rD_address)))(15 downto  0);
                            when others =>
@@ -476,6 +484,7 @@ begin
                         
                      end if;
                   end if;
+
                
             end case;   
          end if;
