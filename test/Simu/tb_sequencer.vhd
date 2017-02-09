@@ -45,7 +45,13 @@ use ieee.numeric_std.all;
 library work;
 use work.tb_sequencer_pkg.all;
 
+library vunit_lib;
+context vunit_lib.vunit_context;
+
 entity tb_sequencer is  
+   generic (
+      runner_cfg  : string
+   );
 end entity;
 
 
@@ -72,34 +78,18 @@ Component sequencer is
    );
 end Component;
 
-Component bytewrite_ram is
-   generic (
-      ADDR_WIDTH : integer := 15;
-      COL_WIDTH  : integer := 16;
-      NB_COL     : integer := 4
-   );
-   port (
-      clk  : in  std_logic;
-      we   : in  std_logic_vector(NB_COL-1 downto 0);
-      addr : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
-      di   : in  std_logic_vector(NB_COL*COL_WIDTH-1 downto 0);
-      do   : out std_logic_vector(NB_COL*COL_WIDTH-1 downto 0)
-   );
-end Component;
 
--- Constant declaration
-constant SIZE_MEM       : integer   := 5;
 
 -- Signals declaration
-signal data_o           : std_logic_vector(31 downto 0);
-signal data_i           : std_logic_vector(31 downto 0);
-signal s_data_i         : std_logic_vector(31 downto 0);
+signal data_o           : std_logic_vector(D_WIDTH-1 downto 0);
+signal data_i           : std_logic_vector(D_WIDTH-1 downto 0);
+signal s_data_i         : std_logic_vector(D_WIDTH-1 downto 0);
 signal addr_in          : std_logic_vector(31 downto 0);
 signal addr_out         : std_logic_vector(31 downto 0);
 signal addr             : std_logic_vector(SIZE_MEM-1 downto 0);  
 signal s_addr           : std_logic_vector(SIZE_MEM-1 downto 0);  
-signal wr_en            : std_logic_vector(3 downto 0);
-signal s_wr_en          : std_logic_vector(3 downto 0);
+signal wr_en            : std_logic_vector(NB_COL-1 downto 0);
+signal s_wr_en          : std_logic_vector(NB_COL-1 downto 0);
 
 signal clk              : std_logic := '0';
 signal reset_n          : std_logic := '0';
@@ -114,38 +104,20 @@ signal data_o_en : std_logic;
 signal r_data_o_en : std_logic;
 signal rd_en : std_logic;
 
-constant c_size_init    : integer  := 10;
-type tab_mem is array (0 to c_size_init-1) of std_logic_vector(31 downto 0);
-constant t_init         :  tab_mem := (
-instr_B( 4, 0, 16, "001000"), -- addi r4 r0 16 (16+0 dans r4)
-instr_B( 5, 4,  4, "001000"), -- addi r5 r4 4 (16+4 dans r5)
-instr_B( 6, 5,  2, "011000"), -- mul r6 r5 2 (20*2 dans r6)
-instr_B( 4, 5, 20, "111110"), -- str r4 r5 20 (*(20+20) = 16)
-instr_B( 3, 0, 36, "111001"), -- load addr 9 into r3
-instr_B( 0, 1,  1, "001000"), -- addi r0 r1 1 (1+0 dans r0)
-instr_B( 0, 8,  0, "101110"), -- branch to start
-(others => '0'),
-(others => '0'),
-x"12345678"
-);
+signal RAM : ram_type := (others => (others => '0'));
 
-   
+constant c_size_init    : integer  := SIZE;
 
+   type fsm_load_app is (st_wait_top, st_load_app);
+   signal r_fsm_load_app : fsm_load_app := st_wait_top;
+   signal r_prog_end : std_logic := '0';
+   signal r_prog_to_run : ram_type;
+   signal r_prog_start : std_logic := '0';
 
 begin
 
    -- Clock generation (125 MHz)
-   clk   <= not clk after 4 ns; 
-   
-   -- Reset at the start of the simulation for 100 ns
-   process
-   begin
-      reset_n  <= '0';
-      wait until r_init_done = '1';
-      reset_n  <= '1';
-      wait;
-   end process;
-
+   clk   <= not clk after C_PERIOD/2; 
 
    i_sequencer : sequencer 
       generic map (
@@ -168,19 +140,19 @@ begin
       
    s_addr <= addr_in(SIZE_MEM+1 downto 2) when s_wr_en = x"0" else addr_out(SIZE_MEM+1 downto 2);
    
-   i_bytewrite_ram : bytewrite_ram 
-   generic map (
-      ADDR_WIDTH     => SIZE_MEM,
-      COL_WIDTH      => 8,
-      NB_COL         => 4
-   )
-   port map(
-      clk            => clk,
-      we             => wr_en,
-      addr           => addr,
-      di             => data_i,
-      do             => data_o
-   );  
+   process (clk)
+   begin
+      if rising_edge(clk) then
+         if (wr_en = c_zero(NB_COL-1 downto 0)) then
+            data_o <= RAM(to_integer(unsigned(addr)));
+         end if;
+         for i in 0 to NB_COL-1 loop
+            if wr_en(i) = '1' then
+               RAM(to_integer(unsigned(addr)))(COL_WIDTH*(i+1)-1 downto i*COL_WIDTH)  <= data_i(COL_WIDTH*(i+1)-1 downto i*COL_WIDTH);
+            end if;
+         end loop;
+      end if;
+   end process; 
    
    -- Init memory
    process(clk)
@@ -188,23 +160,91 @@ begin
       if rising_edge(clk) then
          r_data_o_en <= rd_en;
       
-         if r_cnt < c_size_init then
-            r_init_done    <= '0';
-            r_cnt          <= r_cnt + 1;
-            addr_init      <= std_logic_vector(r_cnt);
-            data_init      <= t_init(to_integer(r_cnt));
-            wr_en_init     <= (others => '1');
-         else
-            r_init_done    <= '1';
-            wr_en_init     <= (others => '0');
-         end if;
+         case r_fsm_load_app is
+            when st_wait_top =>
+               r_init_done <= '1';
+               if r_prog_start = '1' then
+                  r_fsm_load_app <= st_load_app;
+                  r_init_done    <= '0';
+                  r_prog_end     <= '0';
+               end if;
+            when st_load_app =>
+               if r_cnt < c_size_init then
+                  r_cnt       <= r_cnt + 1;
+                  addr_init   <= std_logic_vector(r_cnt);
+                  data_init   <= r_prog_to_run(to_integer(r_cnt));
+                  wr_en_init  <= (others => '1');
+               else
+                  r_init_done    <= '1';
+                  r_prog_end     <= '1';
+                  wr_en_init     <= (others => '0');
+                  r_fsm_load_app <= st_wait_top;
+               end if;
+            when others =>
+               r_fsm_load_app <= st_wait_top;
+         end case;
       end if;
    end process;
    
    addr        <= addr_init(SIZE_MEM-1 downto 0) when r_init_done = '0' else s_addr;
    data_i      <= data_init when r_init_done = '0' else s_data_i;
    wr_en       <= wr_en_init when r_init_done = '0' else s_wr_en;
-            
+   
+   main : process
+      variable filter : log_filter_t;
+   begin
+      checker_init(  display_format => verbose,
+                     file_name      => join(output_path(runner_cfg), "error.cvs"),
+                     file_format    => verbose_csv);
+      logger_init(   display_format => verbose,
+                     file_name      => join(output_path(runner_cfg), "log.csv"),
+                     file_format    => verbose_csv);
+      stop_level((debug,verbose), display_handler, filter);
+      test_runner_setup(runner,runner_cfg);
+      enable_pass_msg;
+      enable_pass_msg(file_handler);
+      enable_pass_msg(display_handler);
+      while test_suite loop
+         reset_checker_stat;
+         reset_n <= '0';
+         wait for 10*C_PERIOD;
+         if run("test_add") then
+            -- Load test program
+            r_prog_to_run  <= c_test(0).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(0).result));
+         elsif run("test_rsub") then
+            -- Load test program
+            r_prog_to_run  <= c_test(1).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(1).result));         
+         elsif run("test_addc") then
+            -- Load test program
+            r_prog_to_run  <= c_test(2).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(2).result));                     
+         end if;
+      end loop;
+      test_runner_cleanup(runner);
+   end process;
    
 
 end rtl;
