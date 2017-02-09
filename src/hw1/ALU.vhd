@@ -80,8 +80,23 @@ begin
    variable operandB_signed   : signed(DATA_WIDTH - 1 downto 0)            := (others => '0');
    variable operandA_unsigned : unsigned(DATA_WIDTH - 1 downto 0)          := (others => '0');
    variable operandB_unsigned : unsigned(DATA_WIDTH - 1 downto 0)          := (others => '0');
+   variable operandA          : std_logic_vector(DATA_WIDTH - 1 downto 0)  := (others => '0');
+   variable operandB          : std_logic_vector(DATA_WIDTH - 1 downto 0)  := (others => '0');
+   
+   variable dbg : std_logic_vector(0 downto 0);
    
    begin
+   
+      operandA_sext8    := (others => operandA_i(7));
+      
+      operandA_signed   := signed(operandA_i);
+      operandB_signed   := signed(operandB_i);
+                        
+      operandA_unsigned := unsigned(operandA_i);
+      operandB_unsigned := unsigned(operandB_i);  
+
+      operandA          := operandA_i;
+      operandB          := operandB_i;
    
       -- Chose carry in
       case param_i.ctrl_op.whichCarry is
@@ -92,19 +107,20 @@ begin
          when CARRY_ZERO =>
             carry_in := '0';
          when CARRY_ARITH =>
-            carry_in := operandA_i(operandA_i'left);
+            carry_in := operandA(operandA'left);
       end case;
       
-      result_add     := signed(add(operandA_i, operandB_i, carry_in)); 
-      result_mult    := signed(multiply(operandA_i, operandB_i));
+      if param_i.ctrl_op.negOperandA = '1' then
+         operandA := not operandA;
+      end if;
       
-      operandA_sext8    := (others => operandA_i(7));
-      
-      operandA_signed   := signed(operandA_i);
-      operandB_signed   := signed(operandB_i);
-                        
-      operandA_unsigned := unsigned(operandA_i);
-      operandB_unsigned := unsigned(operandB_i);      
+      if param_i.ctrl_op.negOperandB = '1' then
+         operandB := not operandB;
+      end if;      
+        
+      result_add     := signed(add(operandA, operandB, carry_in)); 
+      result_mult    := signed(multiply(operandA, operandB));
+           
    
       case param_i.operation is
          when OP_PTA =>
@@ -114,15 +130,15 @@ begin
          when OP_ADD =>
             result   := result_add;
          when OP_AND =>
-            result   := signed('0' & (operandA_i and operandB_i));
+            result   := signed('0' & (operandA and operandB));
          when OP_OR =>
-            result   := signed('0' & (operandA_i or operandB_i));
+            result   := signed('0' & (operandA or operandB));
          when OP_SHIFT => 
             result   := operandA_signed(0) & carry_in & operandA_signed(operandA_signed'left downto 1);
          when OP_XOR =>
-            result   := signed('0' & (operandA_i xor operandB_i));
+            result   := signed('0' & (operandA xor operandB));
          when OP_SEXT8 => 
-            result   := '0' & signed(operandA_sext8) &  signed(operandA_i(7 downto 0));
+            result   := '0' & signed(operandA_sext8) &  signed(operandA(7 downto 0));
          when OP_SEXT16 =>
             result   := '0' & resize(operandA_signed(15 downto 0), DATA_WIDTH);
          when OP_MULT =>
