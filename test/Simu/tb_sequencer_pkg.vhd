@@ -26,7 +26,7 @@ package tb_sequencer_pkg is
          result  : std_logic_vector(D_WIDTH-1 downto 0);
       end record;
    
-   constant N : integer := 3;   
+   constant N : integer := 8;   
    type vect_data_test is array(0 to N-1) of data_test;
    constant c_test : vect_data_test := (
       0 => ((  -- ADD Rd,Ra,Rb
@@ -62,10 +62,65 @@ package tb_sequencer_pkg is
                14 => x"00003456",
                15 => x"00120000",
                others => (others => '0')),
-            x"00123457")             
+            x"00123457") ,            
+      3 => (( -- RSUBC Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A( 5, 5, 0, "000001"),  -- Set carry to one
+               3 => instr_A( 2, 0, 1, "000011"),  -- Instruction to test (result in r2)
+               4 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               5 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"FFFFFFFF",
+               15 => x"00120000",
+               others => (others => '0')),
+            x"00120001"),
+      4 => (( -- ADDK Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A( 5, 5, 0, "000100"),  -- Set carry to one
+               3 => instr_A( 2, 0, 1, "000011"),  -- Instruction to test (result in r2)
+               4 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               5 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"FFFFFFFF",
+               15 => x"00120000",
+               others => (others => '0')),
+            x"00120000")      ,
+      5 => (( -- CMP Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A( 2, 0, 1, "000101"),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"00000012",
+               15 => x"00000011",
+               others => (others => '0')),
+            x"80000000"),
+      6 => (( -- ADDI Rd,Ra,Imm
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_B( 2, 0, 1544, "001000"),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"10305070",
+               15 => x"00000011",
+               others => (others => '0')),
+            x"10305678"),
+      7 => (( -- MUL Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A( 2, 0, 1, "010000"),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"00001234",
+               15 => x"00010000",
+               others => (others => '0')),
+            x"12340000")            
    );
-
-   constant c_result1 : std_logic_vector(D_WIDTH-1 downto 0) := x"00000678";
    
 end tb_sequencer_pkg;
 
