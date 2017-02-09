@@ -212,8 +212,8 @@ if __FILE__ == $0
         op2 = rand((2**31)-1)
         carry = rand(3)
         operation = rand(T_opcode_alu.size)
-        negOpA = rand(2)
-        negOpB = rand(2)
+        negOpA = 0
+        negOpB = 0
         keepCarry = rand(2)
         carry_in_type = rand(4)
         ctrlShift = rand(3)
