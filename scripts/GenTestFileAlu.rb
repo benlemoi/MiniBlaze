@@ -210,10 +210,10 @@ if __FILE__ == $0
     (0...N).each do |i|
         op1 = rand((2**31)-1)
         op2 = rand((2**31)-1)
-        carry = rand(2)
+        carry = rand(3)
         operation = rand(T_opcode_alu.size)
-        negOpA = 0
-        negOpB = 0
+        negOpA = rand(2)
+        negOpB = rand(2)
         keepCarry = rand(2)
         carry_in_type = rand(4)
         ctrlShift = rand(3)
