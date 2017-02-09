@@ -1,3 +1,43 @@
+-- **********************************************************************************
+--   Project          : MiniBlaze
+--   Author           : Benjamin Lemoine
+--   Module           : tb_sequencer_pkg
+--   Date             : 09/02/2017
+--
+--   Description      : Package for the test bench of the Sequencer unit
+--
+--   --------------------------------------------------------------------------------
+--   Modifications
+--   --------------------------------------------------------------------------------
+--   Date             : Ver. : Author           : Modification comments
+--   --------------------------------------------------------------------------------
+--                    :      :                  :
+--   09/02/2017      : 1.0  : B.Lemoine        : First draft
+--                    :      :                  :
+-- **********************************************************************************
+--   MIT License
+--   
+--   Copyright (c) 2017, Benjamin Lemoine
+--   
+--   Permission is hereby granted, free of charge, to any person obtaining a copy
+--   of this software and associated documentation files (the "Software"), to deal
+--   in the Software without restriction, including without limitation the rights
+--   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+--   copies of the Software, and to permit persons to whom the Software is
+--   furnished to do so, subject to the following conditions:
+--   
+--   The above copyright notice and this permission notice shall be included in all
+--   copies or substantial portions of the Software.
+--   
+--   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+--   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+--   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+--   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+--   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+--   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+--   SOFTWARE.
+-- **********************************************************************************
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -18,6 +58,9 @@ package tb_sequencer_pkg is
 
    function instr_A(rD,rA,rB : integer; opcode : std_logic_vector(5 downto 0)) return std_logic_vector;
    function instr_B(rD,rA,imm : integer; opcode : std_logic_vector(5 downto 0)) return std_logic_vector;
+   function instr_A_bsl(rD,rA,rB : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;  
+   function instr_B_bsl(rD,rA,imm : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;
+   
    
    
    type data_test is
@@ -26,7 +69,7 @@ package tb_sequencer_pkg is
          result  : std_logic_vector(D_WIDTH-1 downto 0);
       end record;
    
-   constant N : integer := 8;   
+   constant N : integer := 12;   
    type vect_data_test is array(0 to N-1) of data_test;
    constant c_test : vect_data_test := (
       0 => ((  -- ADD Rd,Ra,Rb
@@ -119,7 +162,51 @@ package tb_sequencer_pkg is
                14 => x"00001234",
                15 => x"00010000",
                others => (others => '0')),
-            x"12340000")            
+            x"12340000")   ,
+      8 => (( -- BSRA Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A_bsl( 2, 0, 1, "010001",'0','1'),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"FFF12345",
+               15 => x"00000004",
+               others => (others => '0')),
+            x"FFFF1234"),
+      9 => (( -- BSLL Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A_bsl( 2, 0, 1, "010001",'1','0'),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"FFF12345",
+               15 => x"00000004",
+               others => (others => '0')),
+            x"FF123450"),
+      10 => (( -- MULI Rd,Ra,Imm
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_B( 2, 0, 5, "011000"),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"00001234",
+               15 => x"00010000",
+               others => (others => '0')),
+            x"00005B04") , 
+      11 => (( -- BSRLI Rd,Ra,Imm
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_B_bsl( 2, 0, 6, "011001",'0','0'),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"01001234",
+               15 => x"00010000",
+               others => (others => '0')),
+            x"00040048")            
    );
    
 end tb_sequencer_pkg;
@@ -145,6 +232,31 @@ package body tb_sequencer_pkg is
       result(20 downto 16) := std_logic_vector(to_unsigned(rA,5));
       result(15 downto  0) := std_logic_vector(to_unsigned(imm,16));
       
+      return result;
+   end function;
+
+   function instr_A_bsl(rD,rA,rB : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector is
+   variable result : std_logic_vector(31 downto 0) := (others => '0');
+   begin
+      result(31 downto 26) := opcode;
+      result(25 downto 21) := std_logic_vector(to_unsigned(rD,5));
+      result(20 downto 16) := std_logic_vector(to_unsigned(rA,5));
+      result(15 downto 11) := std_logic_vector(to_unsigned(rB,5));
+      result(10)           := S;
+      result(9)            := T;
+      
+      return result;
+   end function; 
+
+   function instr_B_bsl(rD,rA,imm : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector is
+   variable result : std_logic_vector(31 downto 0) := (others => '0');
+   begin
+      result(31 downto 26) := opcode;
+      result(25 downto 21) := std_logic_vector(to_unsigned(rD,5));
+      result(20 downto 16) := std_logic_vector(to_unsigned(rA,5));
+      result(10)           := S;
+      result(9)            := T;      
+      result(4 downto  0)  := std_logic_vector(to_unsigned(imm,5));      
       return result;
    end function;   
       
