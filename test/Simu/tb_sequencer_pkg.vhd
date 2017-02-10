@@ -62,7 +62,8 @@ package tb_sequencer_pkg is
    function instr_B_bsl(rD,rA,imm : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;
    function instr_shift(rD,rA : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;
    function instr_sext(rD,rA : integer; opcode : std_logic_vector(5 downto 0);s16 : boolean) return std_logic_vector;
-   function instr_A_branch(rD,rB : integer; opcode : std_logic_vector(5 downto 0);D,A,L : std_logic) return std_logic_vector;
+   function instr_A_branch_unc(rD,rB : integer; opcode : std_logic_vector(5 downto 0);D,A,L : std_logic) return std_logic_vector;
+   function instr_A_branch_cond(rA,rB : integer; opcode : std_logic_vector(5 downto 0);opts : std_logic_vector(4 downto 0)) return std_logic_vector;
    
    
    
@@ -72,7 +73,7 @@ package tb_sequencer_pkg is
          results : ram_type;
       end record;
    
-   constant N : integer := 27;   
+   constant N : integer := 100;   
    type vect_data_test is array(0 to N-1) of data_test;
    constant c_test : vect_data_test := (
       0 =>  (  -- ADD Rd,Ra,Rb
@@ -435,7 +436,7 @@ package tb_sequencer_pkg is
                (
                   0 => instr_B( 0, 4, 56, "111010"), -- 0
                   1 => instr_B( 1, 4, 60, "111010"), -- 4
-                  2 => instr_A_branch(0, 1, "100110", '1','0','0'), -- 8
+                  2 => instr_A_branch_unc(0, 1, "100110", '1','0','0'), -- 8
                   3 => instr_B( 0, 4, 52, "111110"),  -- 12
                   4 => (others => '0'), -- 16
                   5 => instr_B( 1, 4, 48, "111110"), -- 20
@@ -455,7 +456,7 @@ package tb_sequencer_pkg is
                (
                   0 => instr_B( 0, 4, 56, "111010"), -- 0
                   1 => instr_B( 1, 4, 60, "111010"), -- 4
-                  2 => instr_A_branch(3, 1, "100110", '1','0','1'), -- 8
+                  2 => instr_A_branch_unc(3, 1, "100110", '1','0','1'), -- 8
                   3 => instr_B( 0, 4, 52, "111110"),  -- 12
                   4 => (others => '0'), -- 16
                   5 => instr_B( 3, 4, 48, "111110"), -- 20
@@ -475,7 +476,7 @@ package tb_sequencer_pkg is
                (
                   0 => instr_B( 0, 4, 56, "111010"), -- 0
                   1 => instr_B( 1, 4, 60, "111010"), -- 4
-                  2 => instr_A_branch(0, 1, "100110", '0','1','0'), -- 8
+                  2 => instr_A_branch_unc(0, 1, "100110", '0','1','0'), -- 8
                   3 => instr_B( 0, 4, 52, "111110"),  -- 12
                   4 => (others => '0'), -- 16
                   5 => instr_B( 0, 4, 48, "111110"), -- 20
@@ -490,7 +491,69 @@ package tb_sequencer_pkg is
                   1 => x"0000C123", -- pc
                   others => (others => '0')
                )
-            )            
+            ),
+      27 => (  -- BRAD Rb
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- 0
+                  1 => instr_B( 1, 4, 60, "111010"), -- 4
+                  2 => instr_A_branch_unc(0, 1, "100110", '1','1','0'), -- 8
+                  3 => instr_B( 0, 4, 52, "111110"),  -- 12
+                  4 => (others => '0'), -- 16
+                  5 => instr_B( 0, 4, 48, "111110"), -- 20
+                  6 => instr_B( 0, 0, 0, "101110"), -- 24
+                  13 => (others => '0'),
+                  14 => x"0000C123",
+                  15 => x"00000014",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"0000C123", 
+                  1 => x"0000C123", 
+                  others => (others => '0')
+               )
+            ),
+      28 => (  -- BRALD Rb
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- 0
+                  1 => instr_B( 1, 4, 60, "111010"), -- 4
+                  2 => instr_A_branch_unc(3, 1, "100110", '1','1','1'), -- 8
+                  3 => instr_B( 0, 4, 52, "111110"),  -- 12
+                  4 => (others => '0'), -- 16
+                  5 => instr_B( 3, 4, 48, "111110"), -- 20
+                  6 => instr_B( 0, 0, 0, "101110"), -- 24
+                  13 => (others => '0'),
+                  14 => x"0000C123",
+                  15 => x"00000014",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"0000C123", 
+                  1 => x"00000008", 
+                  others => (others => '0')
+               )
+            ),
+      29 => (  -- BEQ
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- 0
+                  1 => instr_B( 1, 4, 60, "111010"), -- 4
+                  2 => instr_A_branch_cond(1, 0, "100111", "00000"), -- 8
+                  3 => instr_B( 0, 4, 52, "111110"),  -- 12
+                  4 => instr_A_branch_cond(0, 0, "100111", "00000"), -- 16
+                  5 => instr_B( 0, 4, 48, "111110"), -- 20
+                  6 => instr_B( 0, 0, 0, "101110"), -- 24
+                  13 => (others => '0'),
+                  14 => x"00000008",
+                  15 => x"00000000",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"00000000", 
+                  1 => x"00000008", 
+                  others => (others => '0')
+               )
+            ),            
+            
+      others => ((others => (others => '0')),(others => (others => '0')))
    );
    
 end tb_sequencer_pkg;
@@ -572,7 +635,7 @@ package body tb_sequencer_pkg is
       return result;
    end function;    
    
-   function instr_A_branch(rD,rB : integer; opcode : std_logic_vector(5 downto 0);D,A,L : std_logic) return std_logic_vector is
+   function instr_A_branch_unc(rD,rB : integer; opcode : std_logic_vector(5 downto 0);D,A,L : std_logic) return std_logic_vector is
    variable result : std_logic_vector(31 downto 0) := (others => '0');
    begin
       result(31 downto 26) := opcode;
@@ -582,7 +645,17 @@ package body tb_sequencer_pkg is
       result(18)           := L;
       result(15 downto 11) := std_logic_vector(to_unsigned(rB,5));
       return result;
-   end function;       
+   end function; 
+
+   function instr_A_branch_cond(rA,rB : integer; opcode : std_logic_vector(5 downto 0);opts : std_logic_vector(4 downto 0)) return std_logic_vector is
+   variable result : std_logic_vector(31 downto 0) := (others => '0');
+   begin
+      result(31 downto 26) := opcode;
+      result(25)           := opts(4);
+      result(20 downto 16) := std_logic_vector(to_unsigned(rA,5));
+      result(15 downto 11) := std_logic_vector(to_unsigned(rB,5));
+      return result;
+   end function;   
    
 
 end;
