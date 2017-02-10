@@ -61,6 +61,7 @@ package tb_sequencer_pkg is
    function instr_A_bsl(rD,rA,rB : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;  
    function instr_B_bsl(rD,rA,imm : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;
    function instr_shift(rD,rA : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;
+   function instr_sext(rD,rA : integer; opcode : std_logic_vector(5 downto 0);s16 : boolean) return std_logic_vector;
    
    
    
@@ -70,7 +71,7 @@ package tb_sequencer_pkg is
          results : ram_type;
       end record;
    
-   constant N : integer := 21;   
+   constant N : integer := 23;   
    type vect_data_test is array(0 to N-1) of data_test;
    constant c_test : vect_data_test := (
       0 =>  (  -- ADD Rd,Ra,Rb
@@ -369,7 +370,47 @@ package tb_sequencer_pkg is
                   2 => x"F891D550",
                   others => (others => '0')
                )
-            )              
+            ),
+      21 => (  -- SEXT8 Rd,Ra
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+                  1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+                  2 => instr_sext( 2, 0, "100100", false),  -- Instruction to test (result in r2)
+                  3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+                  4 => instr_sext( 3, 1, "100100", false),  -- Instruction to test (result in r2)
+                  5 => instr_B( 3, 4, 48, "111110"), -- Store r2 at addr 0x14                  
+                  6 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+                  13 => (others => '0'),
+                  14 => x"000000C8",
+                  15 => x"00000068",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"FFFFFFC8",
+                  1 => x"00000068",
+                  others => (others => '0')
+               )
+            ),
+      22 => (  -- SEXT16 Rd,Ra
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+                  1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+                  2 => instr_sext( 2, 0, "100100", true),  -- Instruction to test (result in r2)
+                  3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+                  4 => instr_sext( 3, 1, "100100", true),  -- Instruction to test (result in r2)
+                  5 => instr_B( 3, 4, 48, "111110"), -- Store r2 at addr 0x14                  
+                  6 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+                  13 => (others => '0'),
+                  14 => x"0000C123",
+                  15 => x"00005123",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"FFFFC123",
+                  1 => x"00005123",
+                  others => (others => '0')
+               )
+            )            
    );
    
 end tb_sequencer_pkg;
@@ -433,7 +474,23 @@ package body tb_sequencer_pkg is
       result(5)            := T;      
       result(0)            := '1';
       return result;
-   end function;         
+   end function;
+
+   function instr_sext(rD,rA : integer; opcode : std_logic_vector(5 downto 0);s16 : boolean) return std_logic_vector is
+   variable result : std_logic_vector(31 downto 0) := (others => '0');
+   begin
+      result(31 downto 26) := opcode;
+      result(25 downto 21) := std_logic_vector(to_unsigned(rD,5));
+      result(20 downto 16) := std_logic_vector(to_unsigned(rA,5));
+      result(6)            := '1';
+      result(5)            := '1';      
+      if s16 then
+         result(0)            := '1';
+      else
+         result(0)            := '0';
+      end if;
+      return result;
+   end function;    
    
 
 end;
