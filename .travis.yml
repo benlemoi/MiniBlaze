@@ -31,3 +31,6 @@ script:
 - ruby scripts/GenTestFileAlu.rb
 - ls test/Simu
 - python travis.py ${BUILD_NAME}
+
+notifications:
+  email: false
