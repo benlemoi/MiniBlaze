@@ -93,6 +93,7 @@ signal r_last_state                 : fsm_seq;
 
 -- Special purpose registers
 signal r_ProgramCounter             : unsigned(D_WIDTH-1 downto 0)         := (others => '0');
+signal r_LastProgramCounter         : unsigned(D_WIDTH-1 downto 0)         := (others => '0');
 signal r_MSR                        : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
 signal r_imm                        : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
 
@@ -124,6 +125,7 @@ signal s_status_alu                 : t_status_alu_out                     := c_
 -- Sequencer
 signal r_wr_carry_output            : std_logic                            := '0';
 signal r_allow_next_instruction     : std_logic                            := '0';
+signal r_isInstructionBranchDelay   : std_logic                            := '0';
 signal r_last_op_was_imm            : std_logic                            := '0';
 signal r_is_branch_cond             : std_logic                            := '0';
 signal r_is_branch_uncond           : std_logic                            := '0';
@@ -159,6 +161,7 @@ begin
             r_fsm_seq                  <= st_fetch;
             r_last_state               <= st_fetch;
             r_ProgramCounter           <= (others => '0');
+            r_LastProgramCounter       <= (others => '0');
             r_fsm_fetch                <= st_set_address;
             r_fsm_load                 <= st_set_address;
          else
@@ -169,11 +172,13 @@ begin
          
             case r_fsm_seq is
                when st_fetch =>
+               
+               
                   -- Fetch instruction
                   case r_fsm_fetch is
                      when st_set_address =>
-                        if r_allow_next_instruction = '1' then
-                           r_addr_mem_in     <= r_addr_mem_in + 4;
+                        if r_isInstructionBranchDelay = '1' then
+                           r_addr_mem_in     <= r_LastProgramCounter + 4;
                         else
                            r_addr_mem_in     <= r_ProgramCounter;
                         end if;
@@ -192,6 +197,11 @@ begin
                   end case;
 
                when st_decode =>
+               
+                  report " ---- ";
+                  report integer'image(to_integer(r_ProgramCounter));
+                  report integer'image(to_integer(unsigned(v_GeneralReg(0)(15 downto 0))));
+                                 
                   
                   --default value
                   r_input_alu_A                    <= v_GeneralReg(to_integer(unsigned(r_instruction(20 downto 16))));
@@ -275,7 +285,7 @@ begin
                      
                      r_allow_next_instruction      <= r_instruction(20);
                      r_is_branch_uncond            <= '1';
-                     r_branch_op                   <= r_instruction(20 downto 17);
+                     r_branch_op                   <= r_instruction(19 downto 16);
                      r_param_alu.operation         <= OP_PTB; 
 
                   -- Barrel Shift : bsrl, bsra, bsll
@@ -355,10 +365,12 @@ begin
                
                   -- Go to fecth step unless we wait for a memory access
                   r_fsm_seq         <= st_fetch;
+                  
+                  r_isInstructionBranchDelay <= '0';
                
                   -- Increment r_ProgramCounter of 4 to fetch the next instruction
                   -- Overwrite the value after if a branch is requested
-                  if(r_last_state /= st_execute) then
+                  if(r_last_state /= st_execute and r_isInstructionBranchDelay = '0') then
                      r_ProgramCounter  <= r_ProgramCounter + 4;
                   end if;
                
@@ -369,7 +381,7 @@ begin
                      r_MSR(MSR_C)                                       <= s_status_alu.carry;
                   end if;
                   
-                  -- Branch execution
+                  -- Branch execution cond
                   if r_is_branch_cond = '1' then
                      v_GeneralReg(to_integer(unsigned(r_rD_address))) <= v_GeneralReg(to_integer(unsigned(r_rD_address)));
                      if r_branch_op = "0000" and s_status_alu.zero = '1' then -- Branch if Equal
@@ -388,15 +400,21 @@ begin
                   -- Return from subroutine
                   elsif r_return_from_subroutine = '1' then
                      r_ProgramCounter     <= unsigned(s_output_alu);
+                     -- Branch execution uncond
                   elsif r_is_branch_uncond = '1' then
-                     if r_branch_op(3) = '0' then -- L bit
-                        v_GeneralReg(to_integer(unsigned(r_rD_address))) <= v_GeneralReg(to_integer(unsigned(r_rD_address)));
+                     v_GeneralReg(to_integer(unsigned(r_rD_address))) <= v_GeneralReg(to_integer(unsigned(r_rD_address)));
+                     if r_branch_op(2) = '1' then -- L bit
+                        v_GeneralReg(to_integer(unsigned(r_rD_address))) <= std_logic_vector(r_ProgramCounter);
                      end if;
-                     if r_branch_op(2) = '1' then -- A bit
+                     if r_branch_op(3) = '1' then -- A bit
                         r_ProgramCounter  <= unsigned(s_output_alu);
                      else
                         r_ProgramCounter  <= r_ProgramCounter + unsigned(s_output_alu);
-                     end if;                                   
+                     end if;   
+                     if r_allow_next_instruction = '1' then
+                        r_isInstructionBranchDelay <= '1';
+                        r_LastProgramCounter       <= r_ProgramCounter;
+                     end if;
                   -- Note : Load & Write this way only works for one cycle access memory
                   -- Load execution
                   elsif r_is_load_instruction = '1' then
