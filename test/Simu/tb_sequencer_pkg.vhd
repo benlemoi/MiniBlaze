@@ -60,40 +60,53 @@ package tb_sequencer_pkg is
    function instr_B(rD,rA,imm : integer; opcode : std_logic_vector(5 downto 0)) return std_logic_vector;
    function instr_A_bsl(rD,rA,rB : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;  
    function instr_B_bsl(rD,rA,imm : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;
+   function instr_shift(rD,rA : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;
    
    
    
    type data_test is
       record
          program : ram_type;
-         result  : std_logic_vector(D_WIDTH-1 downto 0);
+         results : ram_type;
       end record;
    
-   constant N : integer := 12;   
+   constant N : integer := 21;   
    type vect_data_test is array(0 to N-1) of data_test;
    constant c_test : vect_data_test := (
-      0 => ((  -- ADD Rd,Ra,Rb
-               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
-               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
-               2 => instr_A( 2, 0, 1, "000000"),  -- Instruction to test (result in r2)
-               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
-               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
-               13 => (others => '0'),
-               14 => x"00120000",
-               15 => x"00003456",
-               others => (others => '0')),
-            x"00123456"),
-      1 => (( -- RSUB Rd,Ra,Rb
-               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
-               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
-               2 => instr_A( 2, 0, 1, "000001"),  -- Instruction to test (result in r2)
-               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
-               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
-               13 => (others => '0'),
-               14 => x"00000000",
-               15 => x"00000004",
-               others => (others => '0')),
-            x"00000004"),
+      0 =>  (  -- ADD Rd,Ra,Rb
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+                  1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+                  2 => instr_A( 2, 0, 1, "000000"),  -- Instruction to test (result in r2)
+                  3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+                  4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+                  13 => (others => '0'),
+                  14 => x"00120000",
+                  15 => x"00003456",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"00123456",
+                  others => (others => '0')
+               )
+            ),
+      1 =>  ( -- RSUB Rd,Ra,Rb
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+                  1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+                  2 => instr_A( 2, 0, 1, "000001"),  -- Instruction to test (result in r2)
+                  3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+                  4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+                  13 => (others => '0'),
+                  14 => x"00000000",
+                  15 => x"00000004",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"00000004",
+                  others => (others => '0')
+               )
+            ),    
       2 => (( -- ADDC Rd,Ra,Rb
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -104,8 +117,10 @@ package tb_sequencer_pkg is
                13 => (others => '0'),
                14 => x"00003456",
                15 => x"00120000",
-               others => (others => '0')),
-            x"00123457") ,            
+               others => (others => '0')),            
+            (
+              0 => x"00123457",
+              others => (others => '0'))),             
       3 => (( -- RSUBC Rd,Ra,Rb
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -117,7 +132,9 @@ package tb_sequencer_pkg is
                14 => x"FFFFFFFF",
                15 => x"00120000",
                others => (others => '0')),
-            x"00120001"),
+            (
+              0 => x"00120001",
+              others => (others => '0'))),             
       4 => (( -- ADDK Rd,Ra,Rb
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -128,8 +145,10 @@ package tb_sequencer_pkg is
                13 => (others => '0'),
                14 => x"FFFFFFFF",
                15 => x"00120000",
-               others => (others => '0')),
-            x"00120000")      ,
+               others => (others => '0')),  
+            (
+              0 => x"00120000",
+              others => (others => '0'))),             
       5 => (( -- CMP Rd,Ra,Rb
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -140,7 +159,9 @@ package tb_sequencer_pkg is
                14 => x"00000012",
                15 => x"00000011",
                others => (others => '0')),
-            x"80000000"),
+            (
+              0 => x"80000000",
+              others => (others => '0'))),             
       6 => (( -- ADDI Rd,Ra,Imm
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -151,7 +172,9 @@ package tb_sequencer_pkg is
                14 => x"10305070",
                15 => x"00000011",
                others => (others => '0')),
-            x"10305678"),
+            (
+              0 => x"10305678",
+              others => (others => '0'))),             
       7 => (( -- MUL Rd,Ra,Rb
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -162,7 +185,9 @@ package tb_sequencer_pkg is
                14 => x"00001234",
                15 => x"00010000",
                others => (others => '0')),
-            x"12340000")   ,
+            (
+              0 => x"12340000",
+              others => (others => '0'))),             
       8 => (( -- BSRA Rd,Ra,Rb
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -173,7 +198,9 @@ package tb_sequencer_pkg is
                14 => x"FFF12345",
                15 => x"00000004",
                others => (others => '0')),
-            x"FFFF1234"),
+            (
+              0 => x"FFFF1234",
+              others => (others => '0'))),             
       9 => (( -- BSLL Rd,Ra,Rb
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -184,7 +211,9 @@ package tb_sequencer_pkg is
                14 => x"FFF12345",
                15 => x"00000004",
                others => (others => '0')),
-            x"FF123450"),
+            (
+              0 => x"FF123450",
+              others => (others => '0'))), 
       10 => (( -- MULI Rd,Ra,Imm
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -195,7 +224,9 @@ package tb_sequencer_pkg is
                14 => x"00001234",
                15 => x"00010000",
                others => (others => '0')),
-            x"00005B04") , 
+            (
+              0 => x"00005B04",
+              others => (others => '0'))),             
       11 => (( -- BSRLI Rd,Ra,Imm
                0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
                1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
@@ -206,7 +237,139 @@ package tb_sequencer_pkg is
                14 => x"01001234",
                15 => x"00010000",
                others => (others => '0')),
-            x"00040048")            
+            (
+              0 => x"00040048",
+              others => (others => '0'))),             
+      12 => (( -- BSRAI Rd,Ra,Imm
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_B_bsl( 2, 0, 7, "011001",'0','1'),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"FF245231",
+               15 => x"00000000",
+               others => (others => '0')),
+            (
+              0 => x"FFFE48A4",
+              others => (others => '0'))),             
+      13 => (( -- BSLLI Rd,Ra,Imm
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_B_bsl( 2, 0, 3, "011001",'1','0'),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"01001234",
+               15 => x"00010000",
+               others => (others => '0')),
+            (
+              0 => x"080091A0",
+              others => (others => '0'))),             
+      14 => (( -- OR Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A( 2, 0, 1, "100000"),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"01235555",
+               15 => x"7020AAAA",
+               others => (others => '0')),     
+            (
+              0 => x"7123FFFF",
+              others => (others => '0'))),             
+      15 => (( -- AND Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A( 2, 0, 1, "100001"),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"01235555",
+               15 => x"702FAAAA",
+               others => (others => '0')),    
+            (
+              0 => x"00230000",
+              others => (others => '0'))),             
+      16 => (( -- XOR Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A( 2, 0, 1, "100010"),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"0123AAAA",
+               15 => x"702FCCCC",
+               others => (others => '0')),
+            (
+              0 => x"710C6666",
+              others => (others => '0'))),             
+      17 => (( -- ANDN Rd,Ra,Rb
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_A( 2, 0, 1, "100011"),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"01235555",
+               15 => x"702FAAAA",
+               others => (others => '0')),
+            (
+              0 => x"01005555",
+              others => (others => '0'))),             
+      18 => (( -- SRA Rd,Ra
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_shift( 2, 0, "100100", '0', '0'),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"F123AAA1",
+               15 => x"00000000",
+               others => (others => '0')),
+            (
+              0 => x"F891D550",
+              others => (others => '0'))),             
+     19 => (( -- SRC Rd,Ra
+               0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+               1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+               2 => instr_shift( 2, 0, "100100", '0', '1'),  -- Instruction to test (result in r2)
+               3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+               4 => instr_shift( 3, 0, "100100", '0', '1'),  -- Instruction to test (result in r2)
+               5 => instr_B( 3, 4, 48, "111110"), -- Store r2 at addr 0x14
+               6 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+               13 => (others => '0'),
+               14 => x"F123AAA1",
+               15 => x"00000000",
+               others => (others => '0')),
+            (
+              0 => x"7891D550",
+              1 => x"F891D550",
+              others => (others => '0'))),
+      20 => (  -- SRL Rd,Ra
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- Load *(0x18) into r0
+                  1 => instr_B( 1, 4, 60, "111010"), -- Load *(0x1C) into r1
+                  2 => instr_shift( 2, 0, "100100", '1', '0'),  -- Instruction to test (result in r2)
+                  3 => instr_B( 2, 4, 52, "111110"), -- Store r2 at addr 0x14
+                  4 => instr_shift( 3, 0, "100100", '1', '0'),  -- Instruction to test (result in r2)
+                  5 => instr_B( 3, 4, 48, "111110"), -- Store r3 at addr 48
+                  6 => instr_shift( 5, 0, "100100", '0', '1'),  -- Instruction to test (result in r2)
+                  7 => instr_B( 5, 4, 44, "111110"), -- Store r5 at addr 44
+                  8 => instr_B( 0, 0, 0, "101110"),  -- Jump at 0x10 (while(1))
+                  13 => (others => '0'),
+                  14 => x"F123AAA1",
+                  15 => x"00000000",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"7891D550",
+                  1 => x"7891D550",
+                  2 => x"F891D550",
+                  others => (others => '0')
+               )
+            )              
    );
    
 end tb_sequencer_pkg;
@@ -260,6 +423,17 @@ package body tb_sequencer_pkg is
       return result;
    end function;   
       
+   function instr_shift(rD,rA : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector is
+   variable result : std_logic_vector(31 downto 0) := (others => '0');
+   begin
+      result(31 downto 26) := opcode;
+      result(25 downto 21) := std_logic_vector(to_unsigned(rD,5));
+      result(20 downto 16) := std_logic_vector(to_unsigned(rA,5));
+      result(6)            := S;
+      result(5)            := T;      
+      result(0)            := '1';
+      return result;
+   end function;         
    
 
 end;
