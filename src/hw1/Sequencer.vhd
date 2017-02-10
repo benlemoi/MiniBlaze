@@ -200,7 +200,7 @@ begin
                
                   report " ---- ";
                   report integer'image(to_integer(r_ProgramCounter));
-                  report integer'image(to_integer(unsigned(v_GeneralReg(0)(15 downto 0))));
+                  -- report integer'image(to_integer(unsigned(v_GeneralReg(0)(15 downto 0))));
                                  
                   
                   --default value
@@ -278,7 +278,7 @@ begin
                      r_allow_next_instruction      <= r_instruction(25);
                      r_is_branch_cond              <= '1';
                      r_branch_op                   <= r_instruction(24 downto 21);
-                     r_param_alu.operation         <= OP_PTB;               
+                     r_param_alu.operation         <= OP_PTA;               
                      
                   -- unconditional branch instructions
                   elsif (r_instruction(31 downto 30) = "10") and (r_instruction(28 downto 26) = "110") then 
@@ -385,7 +385,7 @@ begin
                   if r_is_branch_cond = '1' then
                      v_GeneralReg(to_integer(unsigned(r_rD_address))) <= v_GeneralReg(to_integer(unsigned(r_rD_address)));
                      if r_branch_op = "0000" and s_status_alu.zero = '1' then -- Branch if Equal
-                        r_ProgramCounter  <= r_ProgramCounter + unsigned(s_output_alu);
+                        r_ProgramCounter  <= r_ProgramCounter + unsigned(v_GeneralReg(to_integer(unsigned(r_instruction(15 downto 11)))));
                      elsif r_branch_op = "0101" and ((s_status_alu.negative = '0') or (s_status_alu.zero = '1')) then -- Branch if Greater or Equal
                         r_ProgramCounter  <= r_ProgramCounter + unsigned(s_output_alu);
                      elsif r_branch_op = "0100" and s_status_alu.negative = '0' then -- Branch if Greater Than
