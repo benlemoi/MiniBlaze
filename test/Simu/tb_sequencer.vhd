@@ -17,7 +17,7 @@
 -- **********************************************************************************
 --   MIT License
 --   
---   Copyright (c) 08/05/2016, Benjamin Lemoine
+--   Copyright (c) 2016, Benjamin Lemoine
 --   
 --   Permission is hereby granted, free of charge, to any person obtaining a copy
 --   of this software and associated documentation files (the "Software"), to deal
@@ -193,6 +193,7 @@ begin
    main : process
       variable filter : log_filter_t;
       variable nb_loop : integer := 0;
+      variable v_numero_test : integer;
    begin
       checker_init(  display_format => verbose,
                      file_name      => join(output_path(runner_cfg), "error.cvs"),
@@ -210,8 +211,9 @@ begin
          reset_n <= '0';
          wait for 10*C_PERIOD;
          if run("test_add") then
+            v_numero_test := 0;
             -- Load test program
-            r_prog_to_run  <= c_test(0).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -219,10 +221,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(0).result));
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));
          elsif run("test_rsub") then
+            v_numero_test := 1;
             -- Load test program
-            r_prog_to_run  <= c_test(1).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -230,10 +233,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(1).result));         
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));         
          elsif run("test_addc") then
+            v_numero_test := 2;         
             -- Load test program
-            r_prog_to_run  <= c_test(2).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -241,10 +245,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(2).result));        
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));        
          elsif run("test_rsubc") then
+            v_numero_test := 3;         
             -- Load test program
-            r_prog_to_run  <= c_test(3).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -252,10 +257,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(3).result)); 
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0))); 
          elsif run("test_addk") then
+            v_numero_test := 4;         
             -- Load test program
-            r_prog_to_run  <= c_test(4).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -263,10 +269,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(4).result));             
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));             
          elsif run("test_cmp") then
+            v_numero_test := 5;         
             -- Load test program
-            r_prog_to_run  <= c_test(5).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -274,10 +281,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(RAM(13)(31), c_test(5).result(31));
+            check_equal(RAM(13)(31), c_test(v_numero_test).results(0)(31));
          elsif run("test_addi") then
+            v_numero_test := 6;         
             -- Load test program
-            r_prog_to_run  <= c_test(6).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -285,10 +293,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(6).result));   
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));   
          elsif run("test_mul") then
+            v_numero_test := 7;         
             -- Load test program
-            r_prog_to_run  <= c_test(7).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -296,10 +305,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(7).result));       
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));       
          elsif run("test_bsra") then
+            v_numero_test := 8;         
             -- Load test program
-            r_prog_to_run  <= c_test(8).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -307,10 +317,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(8).result));      
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));      
          elsif run("test_bsll") then
+            v_numero_test := 9;         
             -- Load test program
-            r_prog_to_run  <= c_test(9).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -318,10 +329,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(9).result));               
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));               
          elsif run("test_muli") then
+            v_numero_test := 10;         
             -- Load test program
-            r_prog_to_run  <= c_test(10).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -329,10 +341,11 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(10).result)); 
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0))); 
          elsif run("test_bsrli") then
+            v_numero_test := 11;         
             -- Load test program
-            r_prog_to_run  <= c_test(11).program;
+            r_prog_to_run  <= c_test(v_numero_test).program;
             r_prog_start   <= '1';
             wait until rising_edge(clk);
             r_prog_start   <= '0';
@@ -340,7 +353,118 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            check_equal(unsigned(RAM(13)), unsigned(c_test(11).result));            
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));          
+         elsif run("test_bsrai") then
+            v_numero_test := 12;         
+            -- Load test program
+            r_prog_to_run  <= c_test(v_numero_test).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));    
+         elsif run("test_bslli") then
+            v_numero_test := 13;         
+            -- Load test program
+            r_prog_to_run  <= c_test(v_numero_test).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));    
+         elsif run("test_or") then
+            v_numero_test := 14;         
+            -- Load test program
+            r_prog_to_run  <= c_test(v_numero_test).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0))); 
+         elsif run("test_and") then
+            v_numero_test := 15;         
+            -- Load test program
+            r_prog_to_run  <= c_test(v_numero_test).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));             
+         elsif run("test_xor") then
+            v_numero_test := 16;         
+            -- Load test program
+            r_prog_to_run  <= c_test(v_numero_test).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));  
+         elsif run("test_andn") then
+            v_numero_test := 17;
+            -- Load test program
+            r_prog_to_run  <= c_test(v_numero_test).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));                
+         elsif run("test_sra") then
+            v_numero_test := 18;
+            -- Load test program
+            r_prog_to_run  <= c_test(v_numero_test).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));        
+         elsif run("test_src") then
+            v_numero_test := 19;
+            -- Load test program
+            r_prog_to_run  <= c_test(v_numero_test).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));              
+            check_equal(unsigned(RAM(12)), unsigned(c_test(v_numero_test).results(1))); 
+         elsif run("test_srl") then
+            v_numero_test := 20;
+            -- Load test program
+            r_prog_to_run  <= c_test(v_numero_test).program;
+            r_prog_start   <= '1';
+            wait until rising_edge(clk);
+            r_prog_start   <= '0';
+            wait until r_prog_end = '1' and rising_edge(clk);
+            reset_n        <= '1';
+            wait for NB_WAIT_CLK*C_PERIOD;
+            -- Check output data
+            check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));              
+            check_equal(unsigned(RAM(12)), unsigned(c_test(v_numero_test).results(1)));            
+            check_equal(unsigned(RAM(11)), unsigned(c_test(v_numero_test).results(2)));            
          end if;
          nb_loop := nb_loop+1;
       end loop;
