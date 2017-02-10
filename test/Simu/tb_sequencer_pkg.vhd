@@ -62,6 +62,7 @@ package tb_sequencer_pkg is
    function instr_B_bsl(rD,rA,imm : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;
    function instr_shift(rD,rA : integer; opcode : std_logic_vector(5 downto 0);S,T : std_logic) return std_logic_vector;
    function instr_sext(rD,rA : integer; opcode : std_logic_vector(5 downto 0);s16 : boolean) return std_logic_vector;
+   function instr_A_branch(rD,rB : integer; opcode : std_logic_vector(5 downto 0);D,A,L : std_logic) return std_logic_vector;
    
    
    
@@ -71,7 +72,7 @@ package tb_sequencer_pkg is
          results : ram_type;
       end record;
    
-   constant N : integer := 23;   
+   constant N : integer := 27;   
    type vect_data_test is array(0 to N-1) of data_test;
    constant c_test : vect_data_test := (
       0 =>  (  -- ADD Rd,Ra,Rb
@@ -410,6 +411,85 @@ package tb_sequencer_pkg is
                   1 => x"00005123",
                   others => (others => '0')
                )
+            )            ,
+      23 => (  -- BR Rb
+               (
+                  0 => instr_B( 0, 4, 56, "111010"),
+                  1 => instr_B( 1, 4, 60, "111010"),
+                  2 => instr_A( 7, 7, 1, "100110"),
+                  3 => instr_B( 0, 4, 52, "111110"), 
+                  4 => instr_B( 0, 4, 48, "111110"),
+                  5 => instr_B( 0, 0, 0, "101110"),
+                  13 => (others => '0'),
+                  14 => x"0000C123",
+                  15 => x"00000008",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"00000000",
+                  1 => x"0000C123",
+                  others => (others => '0')
+               )
+            ),
+      24 => (  -- BRD Rb
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- 0
+                  1 => instr_B( 1, 4, 60, "111010"), -- 4
+                  2 => instr_A_branch(0, 1, "100110", '1','0','0'), -- 8
+                  3 => instr_B( 0, 4, 52, "111110"),  -- 12
+                  4 => (others => '0'), -- 16
+                  5 => instr_B( 1, 4, 48, "111110"), -- 20
+                  6 => instr_B( 0, 0, 0, "101110"), -- 24
+                  13 => (others => '0'),
+                  14 => x"0000C123",
+                  15 => x"0000000C",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"0000C123",
+                  1 => x"0000000C",
+                  others => (others => '0')
+               )
+            ),
+      25 => (  -- BRLD Rb
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- 0
+                  1 => instr_B( 1, 4, 60, "111010"), -- 4
+                  2 => instr_A_branch(3, 1, "100110", '1','0','1'), -- 8
+                  3 => instr_B( 0, 4, 52, "111110"),  -- 12
+                  4 => (others => '0'), -- 16
+                  5 => instr_B( 3, 4, 48, "111110"), -- 20
+                  6 => instr_B( 0, 0, 0, "101110"), -- 24
+                  13 => (others => '0'),
+                  14 => x"0000C123",
+                  15 => x"0000000C",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"0000C123", -- r0
+                  1 => x"00000008", -- pc
+                  others => (others => '0')
+               )
+            ),
+      26 => (  -- BRA Rb
+               (
+                  0 => instr_B( 0, 4, 56, "111010"), -- 0
+                  1 => instr_B( 1, 4, 60, "111010"), -- 4
+                  2 => instr_A_branch(0, 1, "100110", '0','1','0'), -- 8
+                  3 => instr_B( 0, 4, 52, "111110"),  -- 12
+                  4 => (others => '0'), -- 16
+                  5 => instr_B( 0, 4, 48, "111110"), -- 20
+                  6 => instr_B( 0, 0, 0, "101110"), -- 24
+                  13 => (others => '0'),
+                  14 => x"0000C123",
+                  15 => x"00000014",
+                  others => (others => '0')
+               ),
+               (
+                  0 => x"00000000", -- r0
+                  1 => x"0000C123", -- pc
+                  others => (others => '0')
+               )
             )            
    );
    
@@ -491,6 +571,18 @@ package body tb_sequencer_pkg is
       end if;
       return result;
    end function;    
+   
+   function instr_A_branch(rD,rB : integer; opcode : std_logic_vector(5 downto 0);D,A,L : std_logic) return std_logic_vector is
+   variable result : std_logic_vector(31 downto 0) := (others => '0');
+   begin
+      result(31 downto 26) := opcode;
+      result(25 downto 21) := std_logic_vector(to_unsigned(rD,5));
+      result(20)           := D;
+      result(19)           := A;
+      result(18)           := L;
+      result(15 downto 11) := std_logic_vector(to_unsigned(rB,5));
+      return result;
+   end function;       
    
 
 end;
