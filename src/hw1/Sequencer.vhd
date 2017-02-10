@@ -326,26 +326,29 @@ begin
                      r_param_alu.ctrl_op.whichCarry   <= CARRY_ZERO;
                      r_return_from_subroutine         <= '1';
                      
-                  -- Sign Extend Halfword / Byte
+                  -- Sign Extend Halfword / Byte and Shift
                   elsif (r_instruction(31 downto 26) = "100100") then
                      if r_instruction(0) = '1' then
-                        r_param_alu.operation            <= OP_SEXT16;
+                        v_instruction_6_5 := r_instruction(6 downto 5);
+                        case v_instruction_6_5 is
+                           -- SRA
+                           when "00"   => r_param_alu.operation            <= OP_SHIFT;
+                                          r_param_alu.ctrl_op.whichCarry   <= CARRY_ARITH;
+                           -- SRC               
+                           when "01"   => r_param_alu.operation            <= OP_SHIFT;
+                                          r_param_alu.ctrl_op.whichCarry   <= CARRY_INPUT;
+                                          r_wr_carry_output                <= '1';
+                           -- SRL
+                           when "10"   => r_param_alu.operation            <= OP_SHIFT;
+                                          r_param_alu.ctrl_op.whichCarry   <= CARRY_ZERO;
+                                          r_wr_carry_output                <= '1';
+                           -- SEXT16
+                           when others => r_param_alu.operation            <= OP_SEXT16;
+                                          r_param_alu.ctrl_op.whichCarry   <= CARRY_ZERO;
+                        end case;
                      else
                         r_param_alu.operation            <= OP_SEXT8;
                      end if;
-                        
-                  -- Shift
-                  elsif (r_instruction(31 downto 26) = "100100") then 
-                     r_param_alu.operation   <= OP_SHIFT;
-                     r_wr_carry_output       <= '1';
-                     v_instruction_6_5 := r_instruction(6 downto 5);
-                     case v_instruction_6_5 is
-                        when "00"   => r_param_alu.ctrl_op.whichCarry   <= CARRY_ARITH;
-                        when "01"   => r_param_alu.ctrl_op.whichCarry   <= CARRY_INPUT;
-                        when "10"   => r_param_alu.ctrl_op.whichCarry   <= CARRY_ZERO;
-                        when others => r_param_alu.ctrl_op.whichCarry   <= CARRY_ZERO;
-                     end case;
-                  
                   end if;
                   
                when st_execute =>
