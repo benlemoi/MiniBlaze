@@ -387,16 +387,20 @@ begin
                      if r_branch_op = "0000" and s_status_alu.zero = '1' then -- Branch if Equal
                         r_ProgramCounter  <= r_ProgramCounter + unsigned(v_GeneralReg(to_integer(unsigned(r_instruction(15 downto 11)))));
                      elsif r_branch_op = "0101" and ((s_status_alu.negative = '0') or (s_status_alu.zero = '1')) then -- Branch if Greater or Equal
-                        r_ProgramCounter  <= r_ProgramCounter + unsigned(s_output_alu);
+                        r_ProgramCounter  <= r_ProgramCounter + unsigned(v_GeneralReg(to_integer(unsigned(r_instruction(15 downto 11)))));
                      elsif r_branch_op = "0100" and s_status_alu.negative = '0' then -- Branch if Greater Than
-                        r_ProgramCounter  <= r_ProgramCounter + unsigned(s_output_alu);
+                        r_ProgramCounter  <= r_ProgramCounter + unsigned(v_GeneralReg(to_integer(unsigned(r_instruction(15 downto 11)))));
                      elsif r_branch_op = "0011" and ((s_status_alu.negative = '1') or (s_status_alu.zero = '1')) then -- Branch if Less or Equal
-                        r_ProgramCounter  <= r_ProgramCounter + unsigned(s_output_alu);
+                        r_ProgramCounter  <= r_ProgramCounter + unsigned(v_GeneralReg(to_integer(unsigned(r_instruction(15 downto 11)))));
                      elsif r_branch_op = "0010" and s_status_alu.negative = '1' then -- Branch if Less Than
-                        r_ProgramCounter  <= r_ProgramCounter + unsigned(s_output_alu);
+                        r_ProgramCounter  <= r_ProgramCounter + unsigned(v_GeneralReg(to_integer(unsigned(r_instruction(15 downto 11)))));
                      elsif r_branch_op = "0001" and s_status_alu.zero = '0' then   -- Branch if Not Equal
-                        r_ProgramCounter  <= r_ProgramCounter + unsigned(s_output_alu);
+                        r_ProgramCounter  <= r_ProgramCounter + unsigned(v_GeneralReg(to_integer(unsigned(r_instruction(15 downto 11)))));
                      end if;
+                     if r_allow_next_instruction = '1' then
+                        r_isInstructionBranchDelay <= '1';
+                        r_LastProgramCounter       <= r_ProgramCounter;
+                     end if;                     
                   -- Return from subroutine
                   elsif r_return_from_subroutine = '1' then
                      r_ProgramCounter     <= unsigned(s_output_alu);
