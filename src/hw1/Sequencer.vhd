@@ -19,19 +19,19 @@
 --                    :      :                  :
 -- **********************************************************************************
 --   MIT License
---   
+--
 --   Copyright (c) 07/25/2016, Benjamin Lemoine
---   
+--
 --   Permission is hereby granted, free of charge, to any person obtaining a copy
 --   of this software and associated documentation files (the "Software"), to deal
 --   in the Software without restriction, including without limitation the rights
 --   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 --   copies of the Software, and to permit persons to whom the Software is
 --   furnished to do so, subject to the following conditions:
---   
+--
 --   The above copyright notice and this permission notice shall be included in all
 --   copies or substantial portions of the Software.
---   
+--
 --   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 --   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 --   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -92,10 +92,10 @@ signal r_fsm_seq                    : fsm_seq := st_fetch;
 signal r_last_state                 : fsm_seq;
 
 -- Special purpose registers
-signal r_ProgramCounter             : unsigned(D_WIDTH-1 downto 0)         := (others => '0');
-signal r_LastProgramCounter         : unsigned(D_WIDTH-1 downto 0)         := (others => '0');
-signal r_MSR                        : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
-signal r_imm                        : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
+signal r_ProgramCounter             : unsigned(D_WIDTH-1 downto 0)            := (others => '0');
+signal r_LastProgramCounter         : unsigned(D_WIDTH-1 downto 0)            := (others => '0');
+signal r_MSR                        : std_logic_vector(D_WIDTH-1 downto 0)    := (others => '0');
+signal r_imm                        : std_logic_vector(D_WIDTH/2-1 downto 0)  := (others => '0');
 
 -- General purpose registers
 type vect_32x32b is array (0 to 31) of std_logic_vector(D_WIDTH-1 downto 0);
@@ -103,46 +103,47 @@ signal v_GeneralReg                 : vect_32x32b := (others => (others => '0'))
 
 
 -- Mem in
-signal r_addr_mem_in                : unsigned(D_WIDTH-1 downto 0)         := (others => '0');
-signal r_rd_en_mem_in               : std_logic                            := '0';
-signal s_instruction                : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
-signal r_instruction                : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
-         
--- Mem out        
-signal r_wr_en_mem_out              : std_logic_vector(3 downto 0)         := (others => '0');
-signal r_addr_mem_out               : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
-signal r_data_mem_out               : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
+signal r_addr_mem_in                : unsigned(D_WIDTH-1 downto 0)            := (others => '0');
+signal r_rd_en_mem_in               : std_logic                               := '0';
+signal s_instruction                : std_logic_vector(D_WIDTH-1 downto 0)    := (others => '0');
+signal r_instruction                : std_logic_vector(D_WIDTH-1 downto 0)    := (others => '0');
+
+-- Mem out
+signal r_wr_en_mem_out              : std_logic_vector(3 downto 0)            := (others => '0');
+signal r_addr_mem_out               : std_logic_vector(D_WIDTH-1 downto 0)    := (others => '0');
+signal r_data_mem_out               : std_logic_vector(D_WIDTH-1 downto 0)    := (others => '0');
 
 -- ALU
-signal r_input_alu_A                : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
-signal r_input_alu_B                : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
-signal s_input_alu_B                : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
-signal r_param_alu                  : t_param_alu                          := c_param_alu_null;
-signal s_carry_alu_in               : std_logic                            := '0';
-signal s_output_alu                 : std_logic_vector(D_WIDTH-1 downto 0) := (others => '0');
-signal s_status_alu                 : t_status_alu_out                     := c_status_alu_out_null;
+signal r_input_alu_A                : std_logic_vector(D_WIDTH-1 downto 0)    := (others => '0');
+signal r_input_alu_B                : std_logic_vector(D_WIDTH-1 downto 0)    := (others => '0');
+signal s_input_alu_B                : std_logic_vector(D_WIDTH-1 downto 0)    := (others => '0');
+signal r_param_alu                  : t_param_alu                             := c_param_alu_null;
+signal s_carry_alu_in               : std_logic                               := '0';
+signal s_output_alu                 : std_logic_vector(D_WIDTH-1 downto 0)    := (others => '0');
+signal s_status_alu                 : t_status_alu_out                        := c_status_alu_out_null;
 
 -- Sequencer
-signal r_wr_carry_output            : std_logic                            := '0';
-signal r_allow_next_instruction     : std_logic                            := '0';
-signal r_isInstructionBranchDelay   : std_logic                            := '0';
-signal r_last_op_was_imm            : std_logic                            := '0';
-signal r_is_branch_cond             : std_logic                            := '0';
-signal r_is_branch_uncond           : std_logic                            := '0';
-signal r_is_load_instruction        : std_logic                            := '0';
-signal r_is_store_instruction       : std_logic                            := '0';
-signal r_load_store_exclusive       : std_logic                            := '0';
-signal r_rD_address                 : std_logic_vector(4 downto 0)         := (others => '0');
-signal r_return_from_subroutine     : std_logic                            := '0';
-signal r_branch_op                  : std_logic_vector(3 downto 0)         := (others => '0');
-signal r_op_load_store              : std_logic_vector(1 downto 0)         := (others => '0');
-signal r_step_load                  : unsigned(1 downto 0)                 := (others => '0');
-signal r_step_fetch                 : std_logic                            := '0';
+signal r_wr_carry_output            : std_logic                               := '0';
+signal r_allow_next_instruction     : std_logic                               := '0';
+signal r_isInstructionBranchDelay   : std_logic                               := '0';
+signal r_last_op_was_imm            : std_logic                               := '0';
+signal r_is_imm_instruction         : std_logic                               := '0';
+signal r_is_branch_cond             : std_logic                               := '0';
+signal r_is_branch_uncond           : std_logic                               := '0';
+signal r_is_load_instruction        : std_logic                               := '0';
+signal r_is_store_instruction       : std_logic                               := '0';
+signal r_load_store_exclusive       : std_logic                               := '0';
+signal r_rD_address                 : std_logic_vector(4 downto 0)            := (others => '0');
+signal r_return_from_subroutine     : std_logic                               := '0';
+signal r_branch_op                  : std_logic_vector(3 downto 0)            := (others => '0');
+signal r_op_load_store              : std_logic_vector(1 downto 0)            := (others => '0');
+signal r_step_load                  : unsigned(1 downto 0)                    := (others => '0');
+signal r_step_fetch                 : std_logic                               := '0';
 
 
 type fsm_fetch is (st_set_address, st_wait_data);
-signal r_fsm_fetch                  : fsm_fetch                            := st_set_address;
-signal r_fsm_load                   : fsm_fetch                            := st_set_address;
+signal r_fsm_fetch                  : fsm_fetch                               := st_set_address;
+signal r_fsm_load                   : fsm_fetch                               := st_set_address;
 
 
 
@@ -169,11 +170,11 @@ begin
             r_rd_en_mem_in       <= '0';
             r_wr_en_mem_out      <= (others => '0');
             r_last_state         <= r_fsm_seq;
-         
+
             case r_fsm_seq is
                when st_fetch =>
-               
-               
+
+
                   -- Fetch instruction
                   case r_fsm_fetch is
                      when st_set_address =>
@@ -184,25 +185,25 @@ begin
                         end if;
                         r_rd_en_mem_in    <= '1';
                         r_fsm_fetch <= st_wait_data;
-                     
+
                      when st_wait_data =>
                         if data_mem_in_en_i = '1' then
                            r_fsm_seq      <= st_decode;
                            r_instruction  <= s_instruction;
                            r_fsm_fetch    <= st_set_address;
                         end if;
-                     
+
                      when others =>
                         r_fsm_fetch <= st_set_address;
                   end case;
 
                when st_decode =>
-               
+
                   report " ---- ";
                   report integer'image(to_integer(r_ProgramCounter));
-                  -- report integer'image(to_integer(unsigned(v_GeneralReg(0)(15 downto 0))));
-                                 
-                  
+               
+
+
                   --default value
                   r_input_alu_A                    <= v_GeneralReg(to_integer(unsigned(r_instruction(20 downto 16))));
                   r_param_alu.ctrl_op.whichCarry   <= CARRY_INPUT;
@@ -212,18 +213,18 @@ begin
                   r_param_alu.ctrl_op.multType     <= LSW;
                   r_wr_carry_output                <= '0';
                   r_allow_next_instruction         <= '0';
-                  r_last_op_was_imm                <= '0';
                   r_is_branch_cond                 <= '0';
                   r_is_branch_uncond               <= '0';
                   r_is_load_instruction            <= '0';
                   r_is_store_instruction           <= '0';
                   r_load_store_exclusive           <= '0';
                   r_return_from_subroutine         <= '0';
-                  r_fsm_load                       <= st_set_address;   
-                  
+                  r_is_imm_instruction             <= '0';
+                  r_fsm_load                       <= st_set_address;
+
                   -- Next stage
                   r_fsm_seq                        <= st_execute;
-                  
+
                   -- Type A / Type B instruction
                   if r_instruction(29) = '0' then -- rB
                      r_input_alu_B                    <= v_GeneralReg(to_integer(unsigned(r_instruction(15 downto 11))));
@@ -232,8 +233,8 @@ begin
                   end if;
 
                   -- Store rD address
-                  r_rD_address                     <= r_instruction(25 downto 21);          
-               
+                  r_rD_address                     <= r_instruction(25 downto 21);
+
                   -- add, addc, addk, addkc, addi, addic, addik, addikc
                   -- rsub, rsubi
                   if (r_instruction(31 downto 30) = "00") then
@@ -251,47 +252,47 @@ begin
                         r_param_alu.ctrl_op.negOperandA  <= '1';
                      end if;
                      r_wr_carry_output <= not r_instruction(28);
-                                        
-                     
+
+
                   -- and, andi
                   elsif r_instruction(31 downto 30) = "10" and r_instruction(28 downto 26) = "001" then
                      r_param_alu.operation            <= OP_AND;
-                  
+
                   -- andn, andni
                   elsif r_instruction(31 downto 30) = "10" and r_instruction(28 downto 26) = "011" then
                      r_param_alu.operation            <= OP_AND;
                      r_param_alu.ctrl_op.negOperandB  <= r_instruction(27);
-                     
+
                   -- or, ori
-                  elsif r_instruction(31 downto 30) = "10" and r_instruction(28 downto 26) = "000" then   
+                  elsif r_instruction(31 downto 30) = "10" and r_instruction(28 downto 26) = "000" then
                      r_param_alu.operation            <= OP_OR;
-                  
+
                   -- xor, xori
-                  elsif r_instruction(31 downto 30) = "10" and r_instruction(28 downto 26) = "010" then   
+                  elsif r_instruction(31 downto 30) = "10" and r_instruction(28 downto 26) = "010" then
                      r_param_alu.operation            <= OP_XOR;
-                                     
+
 
                   -- conditional branch instructions
                   elsif (r_instruction(31 downto 30) = "10") and (r_instruction(28 downto 26) = "111") then
-                     
+
                      -- D bit, allow following instruction to complete exection
                      r_allow_next_instruction      <= r_instruction(25);
                      r_is_branch_cond              <= '1';
                      r_branch_op                   <= r_instruction(24 downto 21);
-                     r_param_alu.operation         <= OP_PTA;               
-                     
+                     r_param_alu.operation         <= OP_PTA;
+
                   -- unconditional branch instructions
-                  elsif (r_instruction(31 downto 30) = "10") and (r_instruction(28 downto 26) = "110") then 
-                     
+                  elsif (r_instruction(31 downto 30) = "10") and (r_instruction(28 downto 26) = "110") then
+
                      r_allow_next_instruction      <= r_instruction(20);
                      r_is_branch_uncond            <= '1';
                      r_branch_op                   <= r_instruction(19 downto 16);
-                     r_param_alu.operation         <= OP_PTB; 
+                     r_param_alu.operation         <= OP_PTB;
 
                   -- Barrel Shift : bsrl, bsra, bsll
-                  elsif (r_instruction(31 downto 30) = "01") and (r_instruction(28 downto 26) = "001") then 
-                                      
-                     
+                  elsif (r_instruction(31 downto 30) = "01") and (r_instruction(28 downto 26) = "001") then
+
+
                      r_param_alu.operation      <= OP_BS;
                      if r_instruction(10) = '1' then -- bit S (Side bit)
                         r_param_alu.ctrl_op.ctrlShift    <= LEFT_SHIFT;
@@ -302,21 +303,22 @@ begin
                            r_param_alu.ctrl_op.ctrlShift <= RIGHT_SHIFT_LOGIC;
                         end if;
                      end if;
-                     
+
                   -- Integer Compare : cmp, cmpu
                   elsif r_instruction(31 downto 26) = "000101" then
                      r_param_alu.operation            <= OP_ADD;
                      r_param_alu.ctrl_op.whichCarry   <= CARRY_ONE;
                      r_param_alu.ctrl_op.negOperandA  <= '1';
-                  
+
                   -- Immediate : imm
                   elsif r_instruction(31 downto 26) = "101100" then
-                     r_param_alu.operation            <= OP_PTA;
-                  
+                     r_is_imm_instruction             <= '1';
+                     r_param_alu.operation            <= OP_PTB;
+
                   -- Load/Store instruction
                   elsif r_instruction(31 downto 30) = "11" then
-                      
-                     r_is_load_instruction            <= not r_instruction(28);                     
+
+                     r_is_load_instruction            <= not r_instruction(28);
                      r_is_store_instruction           <= r_instruction(28);
                      r_op_load_store                  <= r_instruction(27 downto 26);
                      r_param_alu.operation            <= OP_ADD;
@@ -324,18 +326,18 @@ begin
                      if r_instruction(10) = '1' and  r_instruction(29) = '0' then
                         r_load_store_exclusive        <= '1';
                      end if;
-                   
+
                   -- Multipy instruction : only mul, muli (C_USE_HW_MUL = '1')
                   elsif r_instruction(31 downto 30) = "01" and r_instruction(28 downto 26) = "000" then
-                     r_param_alu.operation            <= OP_MULT;  
-                  
+                     r_param_alu.operation            <= OP_MULT;
+
                   -- Return from Subroutine
-                  elsif (r_instruction(31 downto 25) = "1011011") then 
+                  elsif (r_instruction(31 downto 25) = "1011011") then
                      r_allow_next_instruction         <= '1';
                      r_param_alu.operation            <= OP_ADD;
                      r_param_alu.ctrl_op.whichCarry   <= CARRY_ZERO;
                      r_return_from_subroutine         <= '1';
-                     
+
                   -- Sign Extend Halfword / Byte and Shift
                   elsif (r_instruction(31 downto 26) = "100100") then
                      if r_instruction(0) = '1' then
@@ -344,7 +346,7 @@ begin
                            -- SRA
                            when "00"   => r_param_alu.operation            <= OP_SHIFT;
                                           r_param_alu.ctrl_op.whichCarry   <= CARRY_ARITH;
-                           -- SRC               
+                           -- SRC
                            when "01"   => r_param_alu.operation            <= OP_SHIFT;
                                           r_param_alu.ctrl_op.whichCarry   <= CARRY_INPUT;
                                           r_wr_carry_output                <= '1';
@@ -360,27 +362,28 @@ begin
                         r_param_alu.operation            <= OP_SEXT8;
                      end if;
                   end if;
-                  
+
                when st_execute =>
-               
+
                   -- Go to fecth step unless we wait for a memory access
                   r_fsm_seq         <= st_fetch;
-                  
+
                   r_isInstructionBranchDelay <= '0';
-               
+                  r_last_op_was_imm          <= '0';
+
                   -- Increment r_ProgramCounter of 4 to fetch the next instruction
                   -- Overwrite the value after if a branch is requested
                   if(r_last_state /= st_execute and r_isInstructionBranchDelay = '0') then
                      r_ProgramCounter  <= r_ProgramCounter + 4;
                   end if;
-               
+
                   -- Store ALU output
                   v_GeneralReg(to_integer(unsigned(r_rD_address)))   <= s_output_alu;
                   -- Change MSR carry bit if needed
                   if r_wr_carry_output = '1' then
                      r_MSR(MSR_C)                                       <= s_status_alu.carry;
                   end if;
-                  
+
                   -- Branch execution cond
                   if r_is_branch_cond = '1' then
                      v_GeneralReg(to_integer(unsigned(r_rD_address))) <= v_GeneralReg(to_integer(unsigned(r_rD_address)));
@@ -400,7 +403,7 @@ begin
                      if r_allow_next_instruction = '1' then
                         r_isInstructionBranchDelay <= '1';
                         r_LastProgramCounter       <= r_ProgramCounter;
-                     end if;                     
+                     end if;
                   -- Return from subroutine
                   elsif r_return_from_subroutine = '1' then
                      r_ProgramCounter     <= unsigned(s_output_alu);
@@ -414,7 +417,7 @@ begin
                         r_ProgramCounter  <= unsigned(s_output_alu);
                      else
                         r_ProgramCounter  <= r_ProgramCounter + unsigned(s_output_alu);
-                     end if;   
+                     end if;
                      if r_allow_next_instruction = '1' then
                         r_isInstructionBranchDelay <= '1';
                         r_LastProgramCounter       <= r_ProgramCounter;
@@ -466,7 +469,7 @@ begin
                               end if;
                            end if;
                         when others =>
-                           r_fsm_load  <= st_set_address;                              
+                           r_fsm_load  <= st_set_address;
                      end case;
                   -- Store execution
                   elsif r_is_store_instruction = '1' then
@@ -478,9 +481,9 @@ begin
                         case v_output_alu_1_0 is
                            when "00"   =>
                               r_data_mem_out(7  downto  0)  <= v_GeneralReg(to_integer(unsigned(r_rD_address)))(7  downto  0);
-                           when "01"   => 
+                           when "01"   =>
                               r_data_mem_out(15 downto  8)  <= v_GeneralReg(to_integer(unsigned(r_rD_address)))(7  downto  0);
-                           when "10"   => 
+                           when "10"   =>
                               r_data_mem_out(23 downto 16)  <= v_GeneralReg(to_integer(unsigned(r_rD_address)))(7  downto  0);
                            when others =>
                               r_data_mem_out(31 downto 24)  <= v_GeneralReg(to_integer(unsigned(r_rD_address)))(7  downto  0);
@@ -491,37 +494,42 @@ begin
                         else
                            r_wr_en_mem_out   <= "1100";
                         end if;
-                        
+
                         v_output_alu_1_0 := s_output_alu(1 downto 0);
                         case v_output_alu_1_0 is
                            when "00"   =>
                               r_data_mem_out(15 downto  0)  <= v_GeneralReg(to_integer(unsigned(r_rD_address)))(15 downto  0);
                            when others =>
                               r_data_mem_out(31 downto 16)  <= v_GeneralReg(to_integer(unsigned(r_rD_address)))(15 downto  0);
-                        end case;                     
-                     
+                        end case;
+
                      elsif r_op_load_store = "10" then
                         r_wr_en_mem_out   <= "1111";
                         r_data_mem_out    <= v_GeneralReg(to_integer(unsigned(r_rD_address)));
+
                         if r_load_store_exclusive = '1' then
                            r_MSR(MSR_C) <= '0';
-                        end if;                        
-                        
+                        end if;
+
                      end if;
+                  elsif r_is_imm_instruction = '1' then
+                     v_GeneralReg(to_integer(unsigned(r_rD_address)))   <= v_GeneralReg(to_integer(unsigned(r_rD_address)));
+                     r_imm                                              <= s_output_alu(15 downto 0);
+                     r_last_op_was_imm                                  <= '1';
                   end if;
 
-               
-            end case;   
+
+            end case;
          end if;
       end if;
    end process;
-   
+
    -- Type B instruction, ALU input B depends of the precedent instruction
-   s_input_alu_B <= r_input_alu_B when r_last_op_was_imm = '0' else (r_input_alu_B(15 downto 0) & r_imm);
-   
+   s_input_alu_B <= r_input_alu_B when r_last_op_was_imm = '0' else (r_imm & r_input_alu_B(15 downto 0));
+
    -- Carry input of the ALU depends of the bit C of the MSR
    s_carry_alu_in <= r_MSR(MSR_C);
-   
+
    -- ALU
    i_ALU : ALU
    generic map(
@@ -535,11 +543,11 @@ begin
       operandD_o  => s_output_alu,
       status_o    => s_status_alu
    );
-   
-   -- ===============================   
+
+   -- ===============================
    -- Mapping output
    -- ===============================
-   
+
    addr_mem_in_o     <= std_logic_vector(r_addr_mem_in);
    rd_en_mem_in_o    <= r_rd_en_mem_in;
    addr_mem_out_o    <= r_addr_mem_out;
@@ -547,6 +555,6 @@ begin
    wr_en_mem_out_o   <= r_wr_en_mem_out;
 
 end rtl;
-      
-      
-      
+
+
+
