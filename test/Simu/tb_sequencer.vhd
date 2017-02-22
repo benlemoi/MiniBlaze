@@ -784,23 +784,6 @@ begin
             reset_n        <= '1';
             wait for NB_WAIT_CLK*C_PERIOD;
             -- Check output data
-            report integer'image(to_integer(unsigned(RAM(0)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(1)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(2)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(3)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(4)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(5)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(6)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(7)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(8)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(9)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(10)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(11)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(12)(15 downto 0))));
-            -- report integer'image(to_integer(unsigned(RAM(12)(31 downto 16))));
-            report integer'image(to_integer(unsigned(RAM(13)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(14)(15 downto 0))));
-            report integer'image(to_integer(unsigned(RAM(15)(15 downto 0))));
             check_equal(unsigned(RAM(13)), unsigned(c_test(v_numero_test).results(0)));             
          end if;
          nb_loop := nb_loop+1;
