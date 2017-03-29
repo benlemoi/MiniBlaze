@@ -96,7 +96,6 @@ begin
       if rising_edge(clk) then
          if rst_n = '0' then
             cur_ptr_wr  <= (others => '0');
-            RAM         <= (others => (others => '0'));
          else
             if wr_en = '1' and s_full = '0' then
                cur_ptr_wr                       <= cur_ptr_wr + 1;
