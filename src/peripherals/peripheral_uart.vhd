@@ -53,7 +53,7 @@ entity peripheral_uart is
       USE_FIFO_TX    : integer range 0 to 1     := 1;
       USE_FIFO_RX    : integer range 0 to 1     := 1;
       SIZE_FIFO_TX   : integer range 0 to 10    := 4; -- Log2 of fifo size
-      SIZE_FIFO_RX   : integer range 0 to 10    := 4; -- Log2 of fifo size
+      SIZE_FIFO_RX   : integer range 0 to 10    := 4  -- Log2 of fifo size
    );
    port (
       clk            : in  std_logic;
@@ -90,25 +90,6 @@ architecture rtl of peripheral_uart is
          nb_data        : out std_logic_vector(G_DEPTH_LOG2 downto 0);
          empty          : out std_logic;
          full           : out std_logic
-      );
-   end component;
-
-   component space_32b_to_7b is
-      generic (
-         C_ADDR_BASE    : std_logic_vector(31 downto 0)  := x"0000000"
-      );
-      port (
-         clk                  : in  std_logic;
-         -- 32b intf 
-         bus_data_wr          : in  std_logic_vector(31 downto 0);
-         bus_wr_en            : in  std_logic;
-         bus_addr             : in  std_logic;
-         bus_data_rd          : out std_logic_vector(31 downto 0);
-         -- 7b intf
-         ip_data_wr           : out std_logic_vector(7 downto 0);
-         ip_wr_en             : out std_logic;
-         ip_addr              : out std_logic_vector(7 downto 0);
-         ip_data_rd           : out std_logic;
       );
    end component;
    
@@ -176,9 +157,9 @@ begin
          r_input_data_en         <= '0';
          
          if wr_en = '1' then
-            case addr is
+            case addr(7 downto 0) is
                when x"00" =>  
-                  r_input_data         <= data_wr;
+                  r_input_data         <= data_wr(DATA_BITS-1 downto 0);
                when x"01" =>  
                   r_input_data_en      <= data_wr(0);
                when x"02" =>  
@@ -218,7 +199,7 @@ begin
    process(clk)
    begin
       if rising_edge(clk) then
-         case addr is
+         case addr(7 downto 0) is
             when x"80" =>
                r_data_rd   <= "000000" & s_empty_rx & s_full_rx;
             when x"81" =>
@@ -264,12 +245,14 @@ begin
             when x"BD" =>
                r_data_rd   <= s_size_fifo_rx(15 downto 8);     
             
-            when others => null;
+            when others =>
+               r_data_rd   <= (others => '0');
          end case;
       end if;
    end process;
    
-   data_rd     <= r_data_rd;
+   data_rd(7 downto 0)  <= r_data_rd;
+   data_rd(31 downto 8) <= (others => '0');
    
    -- ====================================
    -- TX fifo
